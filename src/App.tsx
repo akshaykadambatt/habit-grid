@@ -126,7 +126,12 @@ export default function App() {
       </div>
     );
   if (!store.user && !store.localMode)
-    return <Welcome onLocal={store.startLocal} />;
+    return (
+      <>
+        <AppUpdate />
+        <Welcome onLocal={store.startLocal} initialError={store.authError} />
+      </>
+    );
   const activeCount = data.habits.filter((h) => !h.archivedOn).length;
   const navigation = (mobile = false) => (
     <nav
@@ -192,9 +197,9 @@ export default function App() {
             {syncText}
           </span>
         </div>
-        {store.error && (
+        {(store.error || store.authError) && (
           <div className="error-message" role="alert">
-            {store.error}
+            {store.error || store.authError}
             <button className="text-button" onClick={store.retry}>
               Retry
             </button>

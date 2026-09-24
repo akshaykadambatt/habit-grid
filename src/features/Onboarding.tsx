@@ -3,7 +3,13 @@ import { ArrowRight, Check, Cloud, MonitorSmartphone } from "lucide-react";
 import { login, configured } from "../data/firebase";
 import { starterHabits, type Habit } from "../domain/model";
 import { HabitIcon } from "../components/HabitRow";
-export function Welcome({ onLocal }: { onLocal: () => void }) {
+export function Welcome({
+  onLocal,
+  initialError = "",
+}: {
+  onLocal: () => void;
+  initialError?: string;
+}) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function connect() {
@@ -62,9 +68,9 @@ export function Welcome({ onLocal }: { onLocal: () => void }) {
           <MonitorSmartphone size={17} />
           Use this device only
         </button>
-        {error && (
+        {(error || (!busy && initialError)) && (
           <p className="error-message" role="alert">
-            {error}
+            {error || initialError}
           </p>
         )}
         <p className="welcome-footnote">
