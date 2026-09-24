@@ -11,3 +11,4 @@ coverage/
 *.local
 service-account*.json
 backups/
+*.tsbuildinfo
