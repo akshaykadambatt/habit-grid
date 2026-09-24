@@ -126,6 +126,71 @@ test("create a numeric habit and archive it", async ({ page }) => {
     page.getByRole("button", { name: "Read a few pages details" }),
   ).toHaveCount(0);
 });
+
+test("choose a searchable icon and curated color, preserve them after reload, and edit them", async ({
+  page,
+}) => {
+  await start(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.getByRole("button", { name: "Add habit", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Habit name", exact: true })
+    .fill("Read every day");
+  await page.getByRole("button", { name: "Choose icon", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Search icons", exact: true })
+    .fill("doesnotexist");
+  await expect(page.getByText(/No icons found/)).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Search icons", exact: true })
+    .fill("reading");
+  await page.getByRole("button", { name: "Book icon", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Book icon", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".editor-preview .lucide-book-open")).toHaveCount(
+    1,
+  );
+  await page.getByRole("button", { name: "Choose icon", exact: true }).click();
+  await page.getByRole("button", { name: "Choose color", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Sea glass color", exact: true })
+    .click();
+  await expect(page.locator(".editor-preview")).toHaveClass(/teal/);
+  expect(
+    await page
+      .getByRole("dialog")
+      .evaluate((dialog) => dialog.scrollWidth <= dialog.clientWidth),
+  ).toBe(true);
+  for (const swatch of await page.locator(".curated-color-grid button").all()) {
+    const box = await swatch.boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.getByRole("button", { name: "Save habit", exact: true }).click();
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Read every day details", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Habit settings", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Choose icon", exact: true }),
+  ).toContainText("Book");
+  await expect(
+    page.getByRole("button", { name: "Choose color", exact: true }),
+  ).toContainText("Sea glass");
+  await page.getByRole("button", { name: "Choose icon", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Search icons", exact: true })
+    .fill("leaf");
+  await page.getByRole("button", { name: "Leaf icon", exact: true }).click();
+  await page.getByRole("button", { name: "Save habit", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Read every day details", exact: true }),
+  ).toContainText("Not logged today");
+});
 test("empty numeric input retains the sheet and shows an error", async ({
   page,
 }) => {

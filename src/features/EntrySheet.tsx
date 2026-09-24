@@ -90,7 +90,7 @@ export function EntrySheet({
               </span>
             )}
           </label>
-          {habit.icon === "sleep" && (
+          {habit.name === "Sleep" && (
             <p className="help-text">
               Log last night’s sleep on the day you woke up.
             </p>

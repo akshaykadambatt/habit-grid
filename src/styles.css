@@ -17,6 +17,18 @@
   --peach: #f6dcc8;
   --yellow: #f0edb9;
   --rose: #f0d3dd;
+  --sage: #d7e2c4;
+  --fern: #bbd4b1;
+  --teal: #b8dcd1;
+  --aqua: #c6e9e4;
+  --blue: #c9dbf5;
+  --periwinkle: #d2d7f6;
+  --lilac: #e9d4ee;
+  --blush: #f4dee7;
+  --coral: #f2c9bc;
+  --apricot: #f6d4ac;
+  --sand: #e8dcc5;
+  --stone: #dedfd5;
 }
 * {
   box-sizing: border-box;
@@ -297,6 +309,198 @@ h1 {
 }
 .rose {
   --habit: var(--rose);
+}
+.sage {
+  --habit: var(--sage);
+}
+.fern {
+  --habit: var(--fern);
+}
+.teal {
+  --habit: var(--teal);
+}
+.aqua {
+  --habit: var(--aqua);
+}
+.blue {
+  --habit: var(--blue);
+}
+.periwinkle {
+  --habit: var(--periwinkle);
+}
+.lilac {
+  --habit: var(--lilac);
+}
+.blush {
+  --habit: var(--blush);
+}
+.coral {
+  --habit: var(--coral);
+}
+.apricot {
+  --habit: var(--apricot);
+}
+.sand {
+  --habit: var(--sand);
+}
+.stone {
+  --habit: var(--stone);
+}
+
+.icon-picker-toggle,
+.color-picker-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  min-height: 68px;
+}
+.icon-picker-toggle > span:nth-child(2),
+.color-picker-toggle > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.icon-picker-toggle strong,
+.color-picker-toggle strong {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.icon-picker-toggle small,
+.color-picker-toggle small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.icon-picker-toggle > svg,
+.color-picker-toggle > svg {
+  flex-shrink: 0;
+  transition: transform 0.16s ease;
+}
+.icon-picker-toggle[aria-expanded="true"] > svg,
+.color-picker-toggle[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+.selected-color {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.icon-picker-options,
+.curated-color-options {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--page);
+}
+.icon-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding-left: 12px;
+}
+.icon-search > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.icon-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+}
+.icon-search button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+.icon-picker-scroll {
+  max-height: 288px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  margin: 8px -4px -4px;
+}
+.icon-picker-options h3,
+.curated-color-options h3 {
+  margin: 12px 0 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 8px;
+}
+.icon-picker-grid button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+.icon-picker-grid button:hover {
+  background: var(--habit);
+}
+.icon-picker-grid button[aria-pressed="true"] {
+  background: var(--habit);
+  border: 2px solid var(--green);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.curated-color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(44px, 1fr));
+  gap: 6px;
+}
+.curated-color-grid button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 3px;
+}
+.curated-color-grid button > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+.curated-color-grid button[aria-pressed="true"] {
+  border-color: var(--green);
+}
+.curated-color-grid button:hover {
+  border-color: var(--muted);
+}
+.curated-color-options .help-text {
+  margin-bottom: 0;
+}
+@media (max-width: 390px) {
+  .curated-color-grid {
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+  }
 }
 .habit-icon {
   width: 42px;

@@ -1,12 +1,6 @@
-import {
-  Check,
-  Dumbbell,
-  Utensils,
-  Moon,
-  Leaf,
-  Sprout,
-  Minus,
-} from "lucide-react";
+import { Check, Minus } from "lucide-react";
+import { HabitIcon } from "./HabitIcon";
+export { HabitIcon } from "./HabitIcon";
 import {
   addDays,
   dayState,
@@ -16,16 +10,6 @@ import {
   type Data,
   type Habit,
 } from "../domain/model";
-export function HabitIcon({ habit }: { habit: Pick<Habit, "icon"> }) {
-  const Icon = {
-    workout: Dumbbell,
-    food: Utensils,
-    sleep: Moon,
-    leaf: Leaf,
-    habit: Sprout,
-  }[habit.icon];
-  return <Icon size={22} aria-hidden="true" />;
-}
 export function HabitRow({
   habit,
   data,
@@ -49,7 +33,7 @@ export function HabitRow({
         ? "Not met today"
         : rule.kind === "number"
           ? targetLabel(rule)
-          : habit.icon === "leaf"
+          : habit.name === "Healthy calories"
             ? "Your 2000-calorie goal"
             : "Not logged today";
   return (

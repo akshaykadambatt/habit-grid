@@ -1,4 +1,5 @@
 import { COLORS, entryId, localDate, addDays, type Data } from "./model";
+import { HABIT_ICON_IDS, type HabitIconId } from "./icons";
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -109,9 +110,7 @@ export function parseBackup(raw: string): Data {
     assert(
       text(h.name, 100) &&
         COLORS.includes(h.color as (typeof COLORS)[number]) &&
-        ["workout", "food", "sleep", "leaf", "habit"].includes(
-          h.icon as string,
-        ) &&
+        HABIT_ICON_IDS.includes(h.icon as HabitIconId) &&
         number(h.order) &&
         date(h.createdOn) &&
         (h.archivedOn === null ||
