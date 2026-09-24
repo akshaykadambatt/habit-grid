@@ -16,7 +16,12 @@ Test data is synthetic and stored in a separate device-local browser profile.
 - Local persistence after reload.
 - Widths 320, 375, 390, 430, 768, and 1440: no page-level horizontal overflow in Today; primary controls at least 44px, completion controls 48px high.
 - Phone and desktop Today screenshots visually reviewed.
-- Remaining screen/backup and cloud acceptance results are recorded in the release PR.
+- History with 12 synthetic habits and 210 entries, weekly review, long-name wrapping, entry sheets, and Settings visually reviewed on a phone viewport.
+- Valid backup import and unsupported-version rejection checked through the UI. Unit tests cover round trips and corrupt inputs.
+- Firebase Google provider and authorized Hosting domains configured; billing remains disabled. Real Google account sign-in and cross-device writes have not yet been certified.
+- WebMCP integration is optional and feature-detected; the verification browser did not expose registered tools.
+
+The offline browser test stops its own HTTP origin after the service worker has taken control, then reloads and checks in from cache before restoring the origin. This avoids a known Playwright WebKit offline-emulation issue while still requiring a working cached app shell. It does not certify Firestore offline-to-online synchronization.
 
 ## Physical device acceptance (not yet certified)
 

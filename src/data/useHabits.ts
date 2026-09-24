@@ -53,6 +53,14 @@ export function useHabits() {
   const [activeDataset, setActiveDataset] = useState("primary");
   const retries = useRef<Array<() => Promise<unknown>>>([]);
   const pendingCount = useRef(0);
+  const snapshotPending = useRef({
+    profile: false,
+    habits: false,
+    entries: false,
+  });
+  const hasPending = () =>
+    pendingCount.current > 0 ||
+    Object.values(snapshotPending.current).some(Boolean);
   const cloud = !!user && !!db;
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -104,17 +112,24 @@ export function useHabits() {
       { includeMetadataChanges: true },
       (profile) => {
         if (!live) return;
+        snapshotPending.current.profile = profile.metadata.hasPendingWrites;
         const profileData = profile.data();
         const settings = profileData
           ? ((({ dataset: _, ...rest }) => rest)(profileData) as Settings)
           : emptyData().settings;
         setData((old) => ({ ...old, settings }));
         const nextDataset = profileData?.dataset || "primary";
-        if (nextDataset === active) return;
+        if (nextDataset === active) {
+          if (hasPending()) setSync("pending");
+          else setSync((state) => (state === "pending" ? "synced" : state));
+          return;
+        }
         active = nextDataset;
         setSync("loading");
         dataset.current = active;
         setActiveDataset(active);
+        snapshotPending.current.habits = false;
+        snapshotPending.current.entries = false;
         unsubscribers.forEach((stop) => stop());
         setData((old) => ({ ...old, habits: [], entries: {} }));
         const base = ["users", uid, "datasets", active] as const;
@@ -123,13 +138,15 @@ export function useHabits() {
           entriesReady = false;
         const ready = () => {
           if (habitsReady && entriesReady)
-            setSync(pendingCount.current ? "pending" : "synced");
+            setSync(hasPending() ? "pending" : "synced");
         };
         unsubscribers = [
           onSnapshot(
             collection(db!, ...base, "habits"),
             { includeMetadataChanges: true },
             (snapshot) => {
+              snapshotPending.current.habits =
+                snapshot.metadata.hasPendingWrites;
               setData((old) => ({
                 ...old,
                 habits: snapshot.docs
@@ -138,7 +155,6 @@ export function useHabits() {
               }));
               habitsReady = true;
               ready();
-              if (snapshot.metadata.hasPendingWrites) setSync("pending");
             },
             fail,
           ),
@@ -149,6 +165,8 @@ export function useHabits() {
             ),
             { includeMetadataChanges: true },
             (snapshot) => {
+              snapshotPending.current.entries =
+                snapshot.metadata.hasPendingWrites;
               setData((old) => {
                 const entries = { ...old.entries };
                 for (const d of snapshot.docs)
@@ -157,7 +175,6 @@ export function useHabits() {
               });
               entriesReady = true;
               ready();
-              if (snapshot.metadata.hasPendingWrites) setSync("pending");
             },
             fail,
           ),
@@ -218,7 +235,7 @@ export function useHabits() {
     void operation()
       .then(() => {
         pendingCount.current--;
-        if (!retries.current.length && !pendingCount.current) {
+        if (!retries.current.length && !hasPending()) {
           setSync("synced");
           setError("");
         }
