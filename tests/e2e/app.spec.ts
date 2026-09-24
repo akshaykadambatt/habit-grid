@@ -47,6 +47,64 @@ test("explicit failure remains separate from an unlogged day", async ({
     "0",
   );
 });
+
+test("log yesterday for a new habit, undo its earlier start, and retain a numeric backfill on reload", async ({
+  page,
+}) => {
+  await start(page);
+  const yesterday = await page.evaluate(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return new Intl.DateTimeFormat("en-CA").format(date);
+  });
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: `Workout, ${yesterday}, Log earlier day`,
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByText(/Saving starts tracking this habit from/),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Met", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: `Workout, ${yesterday}, Met`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: `Workout, ${yesterday}, Log earlier day`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: `Sleep, ${yesterday}, Log earlier day`,
+      exact: true,
+    })
+    .click();
+  await page.getByRole("textbox", { name: "hours", exact: true }).fill("9");
+  await page.getByRole("button", { name: "Save entry", exact: true }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: `Sleep, ${yesterday}, Met`, exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: `Sleep, ${yesterday}, Met`, exact: true })
+    .click();
+  await page.getByRole("button", { name: "Clear entry", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: `Sleep, ${yesterday}, Not logged`,
+      exact: true,
+    }),
+  ).toBeVisible();
+});
 test("create a numeric habit and archive it", async ({ page }) => {
   await start(page);
   await page.getByRole("button", { name: "Add habit", exact: true }).click();

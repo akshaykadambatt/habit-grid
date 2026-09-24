@@ -94,6 +94,27 @@ export function isScheduled(habit: Habit, date: string) {
     !!ruleOn(habit, date)?.days.includes(weekday(date))
   );
 }
+export function canBackfill(habit: Habit, date: string, today: string) {
+  return (
+    date < habit.createdOn &&
+    date <= today &&
+    habit.rules[0].days.includes(weekday(date))
+  );
+}
+export function backfillHabit(
+  habit: Habit,
+  date: string,
+  today: string,
+): Habit {
+  if (!canBackfill(habit, date, today)) return habit;
+  return {
+    ...habit,
+    createdOn: date,
+    rules: habit.rules.map((rule, index) =>
+      index === 0 ? { ...rule, from: date } : rule,
+    ),
+  };
+}
 export function meetsTarget(rule: Rule, value: number) {
   return (
     Number.isFinite(value) &&

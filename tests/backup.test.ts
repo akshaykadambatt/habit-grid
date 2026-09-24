@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseBackup, exportBackup } from "../src/domain/backup";
-import { emptyData, starterHabits } from "../src/domain/model";
+import { emptyData, starterHabits, backfillHabit } from "../src/domain/model";
 function fixture() {
   return {
     ...emptyData("America/Toronto"),
@@ -8,6 +8,11 @@ function fixture() {
   };
 }
 describe("backup validation", () => {
+  it("round-trips an earlier start without a schema migration", () => {
+    const data = fixture();
+    data.habits[0] = backfillHabit(data.habits[0], "2025-12-31", "2026-01-01");
+    expect(parseBackup(exportBackup(data))).toEqual(data);
+  });
   it("round-trips a complete versioned backup", () => {
     const data = fixture();
     expect(parseBackup(exportBackup(data))).toEqual(data);
