@@ -2,6 +2,8 @@
 
 A quiet place to build consistency. A phone-first habit tracker with quick check-ins, a colorful history grid, and Firebase sync.
 
+**[Open the app](https://habit-grid-akn6.web.app)** · **[Public source](https://github.com/akshaykadambatt/habit-grid)**
+
 ## Product
 
 - Today: one-tap checkboxes, numeric targets, recent history, and undo.
@@ -15,7 +17,28 @@ See [the roadmap](docs/ROADMAP.md) and [architecture](docs/ARCHITECTURE.md).
 
 Requires Node.js 22 or later. Run `npm ci`, then `npm run dev`. Without Firebase configuration the app offers an explicitly device-local mode. Configure `.env.local` from `.env.example` to enable Google sign-in and cloud sync.
 
-Run `npm run check` for type checking, unit tests, and a production build. Deployment and emulator instructions are added alongside Firebase configuration.
+Run `npm run check` for type checking, unit tests, and a production PWA build. Run `npm run test:rules` with Firebase CLI and Java 21 for Firestore ownership/validation tests. Browser tests: `npx playwright install chromium webkit`, then `npm run test:e2e` after a build.
+
+## Firebase setup and deployment
+
+1. Use a **Spark** project. Enable Google sign-in, create a Firestore Standard database, and add a Firebase web app.
+2. Copy the web SDK configuration into `.env.local` using `.env.example`. These are client configuration values, not service-account credentials. Never place admin credentials in Vite environment variables.
+3. Set your project in `.firebaserc`. Authorize your Hosting domain and development host under Authentication settings.
+4. Run `npm run check`, `npm run test:rules`, then `firebase deploy --only hosting,firestore`.
+
+The configured deployment uses `habit-grid-akn6` with Firestore in Montréal (`northamerica-northeast1`). No billing account, Functions, notification scheduler, or Cloud Storage is needed. Deployment is manual; GitHub Actions validates changes but does not hold Firebase deployment credentials.
+
+## iPhone installation
+
+Open the app in Safari, tap Share → Add to Home Screen, and keep Open as Web App enabled if shown. After an initial online visit, the application shell and cached habits are available offline. Pending cloud changes sync when reconnected. A physical-device acceptance check is still required for a release certification; desktop device emulation is not a substitute.
+
+## Data behavior
+
+Missing entries never count as success. Rest days are neutral. Past missed/unlogged scheduled days break streaks; today’s unlogged entry stays pending. Schedule and target changes preserve older rule versions. Sleep belongs to the waking date.
+
+Local mode and cloud profiles are separate. Export a local backup and import it after sign-in to move local data to your account. Cloud imports stage a new dataset and switch only after all records are uploaded; previous datasets remain inactive in Firestore for recoverability. This version supports 200 habits (including archived), 50,000 backup entries, and 10 MB backup files.
+
+Google sign-out clears the device’s cloud cache. Close other app tabs if cache clearing cannot complete. Export backups regularly in device-local mode.
 
 ## Privacy
 

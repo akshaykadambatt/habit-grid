@@ -1,7 +1,200 @@
-import {ArrowUpRight,X,Share2} from 'lucide-react';
-import {HabitRow} from '../components/HabitRow';
-import {addDays,dayState,isScheduled,type Data,type Habit} from '../domain/model';
-export function Today({data,today,onEntry,onCheck,onHistory,onAdd,onDismissInstall,onInstall,onYesterday}:{data:Data;today:string;onEntry:(habit:Habit,date:string)=>void;onCheck:(habit:Habit)=>void;onHistory:()=>void;onAdd:()=>void;onDismissInstall:()=>void;onInstall:()=>void;onYesterday:()=>void}) {
- const habits=data.habits.filter(h=>isScheduled(h,today));const met=habits.filter(h=>dayState(h,today,data.entries,today)==='met').length;const unfinished=data.habits.filter(h=>dayState(h,addDays(today,-1),data.entries,today)==='unlogged').length;
- return <div className="today-layout"><section className="today-list"><div className="progress-section"><div><strong>{met} <span>of {habits.length} goals met</span></strong><span>{met===habits.length&&habits.length?'ALL SET FOR TODAY':'ONE STEP AT A TIME'}</span></div><div className="progress-track" role="progressbar" aria-label="Today's goals met" aria-valuenow={met} aria-valuemin={0} aria-valuemax={habits.length||1}>{habits.map(h=><i className={h.color} key={h.id} style={{background:dayState(h,today,data.entries,today)==='met'?'var(--habit)':undefined}}/>)}</div></div>{habits.length?<div className="habit-list">{habits.map(h=><HabitRow key={h.id} habit={h} data={data} today={today} onDetails={()=>onEntry(h,today)} onCheck={()=>onCheck(h)}/>)}</div>:<div className="empty-state"><h2>{data.habits.some(h=>!h.archivedOn)?'Nothing scheduled today':'A small beginning'}</h2><p>{data.habits.some(h=>!h.archivedOn)?'A little breathing room. Your history is still here.':'Choose one thing you’d like to make time for.'}</p><button className="primary-button" onClick={data.habits.some(h=>!h.archivedOn)?onHistory:onAdd}>{data.habits.some(h=>!h.archivedOn)?'View history':'Add your first habit'}</button></div>}{met===habits.length&&habits.length>0?<p className="all-set">All set for today. See you tomorrow.</p>:<div className="list-footer"><span>Make today a day you can see.</span><span>↳ ONE CHECK-IN AT A TIME</span></div>}{unfinished>0&&<button className="yesterday-link" onClick={onYesterday}>{unfinished} {unfinished===1?'habit':'habits'} unlogged yesterday <ArrowUpRight size={16}/></button>}{!data.settings.installDismissed&&Object.values(data.entries).some(e=>e.status==='met')&&!matchMedia('(display-mode: standalone)').matches&&<div className="install-banner"><Share2 size={20}/><div><strong>Keep your habits close.</strong><button onClick={onInstall}>Add habit-grid to your home screen</button></div><button className="icon-button" aria-label="Dismiss installation tip" onClick={onDismissInstall}><X size={17}/></button></div>}</section><aside className="today-aside"><div className="rhythm-card"><div className="section-kicker">THE BIGGER PICTURE<ArrowUpRight size={18}/></div><h2>Find your<br/>everyday rhythm.</h2><div className="rhythm-grid" aria-hidden="true">{Array.from({length:49},(_,i)=>{const h=data.habits[i%Math.max(1,data.habits.length)];const met=h&&dayState(h,addDays(today,Math.floor(i/7)-6),data.entries,today)==='met';return <i key={i} className={h?.color} style={{background:met?'var(--habit)':'transparent',border:met?'none':'1px solid #c6d0bc'}}/>;})}</div><p>Your small daily choices,<br/>all in one place.</p><button className="text-button" onClick={onHistory}>Explore your history <ArrowUpRight size={16}/></button></div><div className="quiet-note"><span>A NOTE TO SELF</span><p>Consistency has room<br/>for being human.</p></div></aside></div>;
+import { ArrowUpRight, X, Share2 } from "lucide-react";
+import { HabitRow } from "../components/HabitRow";
+import {
+  addDays,
+  dayState,
+  isScheduled,
+  type Data,
+  type Habit,
+} from "../domain/model";
+export function Today({
+  data,
+  today,
+  onEntry,
+  onCheck,
+  onHistory,
+  onAdd,
+  onDismissInstall,
+  onInstall,
+  onYesterday,
+}: {
+  data: Data;
+  today: string;
+  onEntry: (habit: Habit, date: string) => void;
+  onCheck: (habit: Habit) => void;
+  onHistory: () => void;
+  onAdd: () => void;
+  onDismissInstall: () => void;
+  onInstall: () => void;
+  onYesterday: () => void;
+}) {
+  const habits = data.habits.filter((h) => isScheduled(h, today));
+  const met = habits.filter(
+    (h) => dayState(h, today, data.entries, today) === "met",
+  ).length;
+  const unfinished = data.habits.filter(
+    (h) => dayState(h, addDays(today, -1), data.entries, today) === "unlogged",
+  ).length;
+  return (
+    <div className="today-layout">
+      <section className="today-list">
+        <div className="progress-section">
+          <div>
+            <strong>
+              {met} <span>of {habits.length} goals met</span>
+            </strong>
+            <span>
+              {met === habits.length && habits.length
+                ? "ALL SET FOR TODAY"
+                : "ONE STEP AT A TIME"}
+            </span>
+          </div>
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label="Today's goals met"
+            aria-valuenow={met}
+            aria-valuemin={0}
+            aria-valuemax={habits.length || 1}
+          >
+            {habits.map((h) => (
+              <i
+                className={h.color}
+                key={h.id}
+                style={{
+                  background:
+                    dayState(h, today, data.entries, today) === "met"
+                      ? "var(--habit)"
+                      : undefined,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        {habits.length ? (
+          <div className="habit-list">
+            {habits.map((h) => (
+              <HabitRow
+                key={h.id}
+                habit={h}
+                data={data}
+                today={today}
+                onDetails={() => onEntry(h, today)}
+                onCheck={() => onCheck(h)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h2>
+              {data.habits.some((h) => !h.archivedOn)
+                ? "Nothing scheduled today"
+                : "A small beginning"}
+            </h2>
+            <p>
+              {data.habits.some((h) => !h.archivedOn)
+                ? "A little breathing room. Your history is still here."
+                : "Choose one thing you’d like to make time for."}
+            </p>
+            <button
+              className="primary-button"
+              onClick={
+                data.habits.some((h) => !h.archivedOn) ? onHistory : onAdd
+              }
+            >
+              {data.habits.some((h) => !h.archivedOn)
+                ? "View history"
+                : "Add your first habit"}
+            </button>
+          </div>
+        )}
+        {met === habits.length && habits.length > 0 ? (
+          <p className="all-set">All set for today. See you tomorrow.</p>
+        ) : (
+          <div className="list-footer">
+            <span>Make today a day you can see.</span>
+            <span>↳ ONE CHECK-IN AT A TIME</span>
+          </div>
+        )}
+        {unfinished > 0 && (
+          <button className="yesterday-link" onClick={onYesterday}>
+            {unfinished} {unfinished === 1 ? "habit" : "habits"} unlogged
+            yesterday <ArrowUpRight size={16} />
+          </button>
+        )}
+        {!data.settings.installDismissed &&
+          Object.values(data.entries).some((e) => e.status === "met") &&
+          !matchMedia("(display-mode: standalone)").matches && (
+            <div className="install-banner">
+              <Share2 size={20} />
+              <div>
+                <strong>Keep your habits close.</strong>
+                <button onClick={onInstall}>
+                  Add habit-grid to your home screen
+                </button>
+              </div>
+              <button
+                className="icon-button"
+                aria-label="Dismiss installation tip"
+                onClick={onDismissInstall}
+              >
+                <X size={17} />
+              </button>
+            </div>
+          )}
+      </section>
+      <aside className="today-aside">
+        <div className="rhythm-card">
+          <div className="section-kicker">
+            THE BIGGER PICTURE
+            <ArrowUpRight size={18} />
+          </div>
+          <h2>
+            Find your
+            <br />
+            everyday rhythm.
+          </h2>
+          <div className="rhythm-grid" aria-hidden="true">
+            {Array.from({ length: 49 }, (_, i) => {
+              const h = data.habits[Math.floor(i / 7)];
+              const met =
+                h &&
+                dayState(
+                  h,
+                  addDays(today, (i % 7) - 6),
+                  data.entries,
+                  today,
+                ) === "met";
+              return (
+                <i
+                  key={i}
+                  className={h?.color}
+                  style={{
+                    background: met ? "var(--habit)" : "transparent",
+                    border: met ? "none" : "1px solid #c6d0bc",
+                  }}
+                />
+              );
+            })}
+          </div>
+          <p>
+            Your small daily choices,
+            <br />
+            all in one place.
+          </p>
+          <button className="text-button" onClick={onHistory}>
+            Explore your history <ArrowUpRight size={16} />
+          </button>
+        </div>
+        <div className="quiet-note">
+          <span>A NOTE TO SELF</span>
+          <p>
+            Consistency has room
+            <br />
+            for being human.
+          </p>
+        </div>
+      </aside>
+    </div>
+  );
 }
