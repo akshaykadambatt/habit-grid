@@ -19,8 +19,8 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['id','name','color','icon','order','createdOn','archivedOn','rules'])
           && request.resource.data.id == habitId
           && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
-          && request.resource.data.color in ['mint','lavender','sky','peach','yellow','rose']
-          && request.resource.data.icon in ['workout','food','sleep','leaf','habit']
+          && request.resource.data.color in ['mint','sage','fern','teal','aqua','sky','blue','periwinkle','lavender','lilac','rose','blush','peach','coral','apricot','yellow','sand','stone']
+          && request.resource.data.icon in ['habit','check','calendar','clock','target','trophy','repeat','list','workout','walk','bike','activity','pulse','stretch','mountain','waves','brain','book','journal','study','language','idea','puzzle','focus','food','leaf','water','apple','carrot','salad','coffee','cooking','sleep','sun','bed','shower','smile','heart','flower','hand','music','guitar','art','camera','code','work','home','savings']
           && request.resource.data.order is number && date(request.resource.data.createdOn)
           && (request.resource.data.archivedOn == null || date(request.resource.data.archivedOn))
           && request.resource.data.rules is list && request.resource.data.rules.size() > 0 && request.resource.data.rules.size() <= 500;

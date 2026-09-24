@@ -1,12 +1,6 @@
-export const COLORS = [
-  "mint",
-  "lavender",
-  "sky",
-  "peach",
-  "yellow",
-  "rose",
-] as const;
-export type Color = (typeof COLORS)[number];
+import type { HabitIconId } from "./icons";
+import type { Color } from "./colors";
+export { COLORS, type Color } from "./colors";
 export type Rule = {
   from: string;
   kind: "checkbox" | "number";
@@ -20,7 +14,7 @@ export type Habit = {
   id: string;
   name: string;
   color: Color;
-  icon: "workout" | "food" | "sleep" | "leaf" | "habit";
+  icon: HabitIconId;
   order: number;
   createdOn: string;
   archivedOn: string | null;

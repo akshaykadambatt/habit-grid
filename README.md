@@ -9,6 +9,7 @@ A quiet place to build consistency. A phone-first habit tracker with quick check
 - Today: one-tap checkboxes, numeric targets, recent history, and undo.
 - History: editable habit-by-day grid, streaks, and weekly review.
 - Settings: habit management, timezone, backup, and iPhone installation help.
+- Make habits your own with 48 searchable line icons and 18 curated pastel colors. Appearance is preserved in cloud sync and backups, and can be changed later.
 - React + TypeScript + Vite. Firebase Authentication, Firestore, and static Hosting on Spark. No notifications, billing services, or health prescriptions.
 
 See [the roadmap](docs/ROADMAP.md) and [architecture](docs/ARCHITECTURE.md).

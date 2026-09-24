@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Check, Archive } from "lucide-react";
+import { Archive } from "lucide-react";
 import { Sheet } from "../components/Sheet";
 import { HabitIcon } from "../components/HabitRow";
+import { IconPicker } from "../components/IconPicker";
+import { ColorPicker } from "../components/ColorPicker";
 import {
-  COLORS,
   reviseHabit,
   ruleOn,
   type Habit,
@@ -36,6 +37,7 @@ export function HabitEditor({
   const [upper, setUpper] = useState(String(initial?.upper || ""));
   const [days, setDays] = useState(initial?.days || [0, 1, 2, 3, 4, 5, 6]);
   const [color, setColor] = useState<Color>(habit?.color || "mint");
+  const [icon, setIcon] = useState<Habit["icon"]>(habit?.icon || "habit");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [archive, setArchive] = useState(false);
   function submit() {
@@ -81,12 +83,12 @@ export function HabitEditor({
       days: [...days].sort(),
     };
     const result: Habit = habit
-      ? { ...reviseHabit(habit, rule, today), name: name.trim(), color }
+      ? { ...reviseHabit(habit, rule, today), name: name.trim(), color, icon }
       : {
           id: crypto.randomUUID(),
           name: name.trim(),
           color,
-          icon: "habit",
+          icon,
           order,
           createdOn: today,
           archivedOn: null,
@@ -273,26 +275,11 @@ export function HabitEditor({
           </div>
           {errors.days && <span className="field-error">{errors.days}</span>}
         </fieldset>
-        <fieldset className="field">
-          <legend>A little color</legend>
-          <div className="color-picker">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={c}
-                aria-label={c}
-                aria-pressed={color === c}
-                onClick={() => setColor(c)}
-              >
-                {color === c && <Check size={20} />}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <ColorPicker value={color} onChange={setColor} />
+        <IconPicker value={icon} color={color} onChange={setIcon} />
         <div className={`editor-preview ${color}`}>
           <span className="habit-icon">
-            <HabitIcon habit={habit || { icon: "habit" }} />
+            <HabitIcon habit={{ icon }} />
           </span>
           <div>
             <strong>{name.trim() || "Your new habit"}</strong>

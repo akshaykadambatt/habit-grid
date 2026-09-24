@@ -5,7 +5,9 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
+import { HABIT_ICONS } from "../src/domain/icons";
+import { COLORS, starterHabits } from "../src/domain/model";
 import { beforeAll, afterAll, describe, it } from "vitest";
 let environment: RulesTestEnvironment;
 beforeAll(async () => {
@@ -24,6 +26,24 @@ const settings = {
   dataset: "primary",
 };
 describe("Firestore ownership", () => {
+  it("accepts every curated appearance and rejects unknown icons and colors", async () => {
+    const db = environment.authenticatedContext("alice").firestore();
+    const batch = writeBatch(db);
+    const habit = starterHabits("2026-01-01")[0];
+    for (const [index, icon] of HABIT_ICONS.entries()) {
+      const id = `appearance-${index}`;
+      batch.set(doc(db, `users/alice/datasets/primary/habits/${id}`), {
+        ...habit,
+        id,
+        icon: icon.id,
+        color: COLORS[index % COLORS.length],
+      });
+    }
+    await assertSucceeds(batch.commit());
+    const ref = doc(db, `users/alice/datasets/primary/habits/${habit.id}`);
+    await assertFails(setDoc(ref, { ...habit, icon: "unknown-icon" }));
+    await assertFails(setDoc(ref, { ...habit, color: "#ff0000" }));
+  });
   it("allows the owner to create and read their profile", async () => {
     const db = environment.authenticatedContext("alice").firestore();
     await assertSucceeds(setDoc(doc(db, "users/alice"), settings));
