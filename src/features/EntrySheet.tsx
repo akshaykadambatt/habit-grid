@@ -24,7 +24,8 @@ export function EntrySheet({
   onSave: (status: Entry["status"], value: number | null) => void;
   onEdit: () => void;
 }) {
-  const rule = ruleOn(habit, date)!;
+  const rule = ruleOn(habit, date) || habit.rules[0];
+  const earlier = date < habit.createdOn;
   const [value, setValue] = useState(entry?.value?.toString() || "");
   const [error, setError] = useState("");
   function save() {
@@ -55,6 +56,13 @@ export function EntrySheet({
         <span className="color-dot" />
         {rule.kind === "number" ? targetLabel(rule) : "How did it go?"}
       </div>
+      {earlier && (
+        <p className="help-text">
+          Saving starts tracking this habit from {formatDate(date)} using its
+          original schedule and target. Scheduled days since then will count in
+          your history.
+        </p>
+      )}
       {rule.kind === "number" ? (
         <form
           onSubmit={(e) => {
@@ -112,7 +120,7 @@ export function EntrySheet({
         </div>
       )}
       <div className="entry-secondary">
-        <button onClick={() => onSave("unlogged", null)}>
+        <button disabled={earlier} onClick={() => onSave("unlogged", null)}>
           <RotateCcw size={17} />
           Clear entry
         </button>

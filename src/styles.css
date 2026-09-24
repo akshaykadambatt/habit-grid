@@ -781,6 +781,14 @@ h1 {
   background: #fff;
   border: 1px solid #dfe4d9;
 }
+.state-before-start {
+  border: 1px dashed #b9c4b1;
+  color: var(--muted);
+  background: var(--surface);
+}
+.state-before-start:hover {
+  background: var(--habit);
+}
 .state-unscheduled,
 .state-future {
   background: #f5f6f3;

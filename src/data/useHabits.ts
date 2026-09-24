@@ -254,11 +254,16 @@ export function useHabits() {
         setError(`Your change has not synced. ${e.message}`);
       });
   }
-  function saveEntry(entry: Entry) {
+  function saveEntry(entry: Entry, habitUpdate?: Habit) {
     const id = entryId(entry.habitId, entry.date);
     const next = {
       ...dataRef.current,
       entries: { ...dataRef.current.entries, [id]: entry },
+      habits: habitUpdate
+        ? dataRef.current.habits.map((h) =>
+            h.id === habitUpdate.id ? habitUpdate : h,
+          )
+        : dataRef.current.habits,
     };
     if (!cloud) {
       persistLocal(next);
@@ -266,8 +271,22 @@ export function useHabits() {
     }
     dataRef.current = next;
     setData(next);
-    send(() =>
-      setDoc(
+    send(() => {
+      const batch = writeBatch(db!);
+      if (habitUpdate)
+        batch.set(
+          doc(
+            db!,
+            "users",
+            user!.uid,
+            "datasets",
+            dataset.current,
+            "habits",
+            habitUpdate.id,
+          ),
+          habitUpdate,
+        );
+      batch.set(
         doc(
           db!,
           "users",
@@ -278,8 +297,9 @@ export function useHabits() {
           id,
         ),
         entry,
-      ),
-    );
+      );
+      return batch.commit();
+    });
   }
   function saveHabits(habits: Habit[]) {
     if (habits.length > 200)

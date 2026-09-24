@@ -8,6 +8,7 @@ import {
   ruleOn,
   dayState,
   entryId,
+  backfillHabit,
   type Entry,
   type Habit,
 } from "./domain/model";
@@ -39,9 +40,12 @@ export default function App() {
   );
   const [info, setInfo] = useState<string | null>(null);
   const [editor, setEditor] = useState<Habit | "new" | null>(null);
-  const [undo, setUndo] = useState<{ message: string; previous: Entry } | null>(
-    null,
-  );
+  const [undo, setUndo] = useState<{
+    message: string;
+    previous: Entry;
+    habitBefore?: Habit;
+    habitAfter?: Habit;
+  } | null>(null);
   useEffect(() => {
     const update = () => setNow(new Date());
     const timer = setInterval(update, 15000);
@@ -73,18 +77,29 @@ export default function App() {
       value: null,
       updatedAt: new Date().toISOString(),
     };
+    const currentHabit = data.habits.find((h) => h.id === habit.id) || habit;
+    const updatedHabit =
+      status === "unlogged"
+        ? currentHabit
+        : backfillHabit(currentHabit, date, today);
+    const changedStart = updatedHabit !== currentHabit;
     try {
-      store.saveEntry({
-        habitId: habit.id,
-        date,
-        status,
-        value,
-        updatedAt: new Date().toISOString(),
-      });
+      store.saveEntry(
+        {
+          habitId: habit.id,
+          date,
+          status,
+          value,
+          updatedAt: new Date().toISOString(),
+        },
+        changedStart ? updatedHabit : undefined,
+      );
       setUndo({
         message:
           status === "unlogged" ? "Entry cleared" : `${habit.name} updated`,
         previous,
+        habitBefore: changedStart ? currentHabit : undefined,
+        habitAfter: changedStart ? updatedHabit : undefined,
       });
       setEntryTarget(null);
     } catch {
@@ -381,10 +396,18 @@ export default function App() {
           <button
             onClick={() => {
               try {
-                store.saveEntry({
-                  ...undo.previous,
-                  updatedAt: new Date().toISOString(),
-                });
+                const unchangedHabit =
+                  undo.habitAfter &&
+                  JSON.stringify(
+                    data.habits.find((h) => h.id === undo.habitAfter!.id),
+                  ) === JSON.stringify(undo.habitAfter);
+                store.saveEntry(
+                  {
+                    ...undo.previous,
+                    updatedAt: new Date().toISOString(),
+                  },
+                  unchangedHabit ? undo.habitBefore : undefined,
+                );
                 setUndo(null);
               } catch {
                 /* Store exposes errors. */

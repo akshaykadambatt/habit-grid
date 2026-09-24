@@ -1,4 +1,4 @@
-import { Check, Minus } from "lucide-react";
+import { Check, Minus, Plus } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export type CellState =
@@ -29,6 +29,7 @@ type GridRow = {
   color: string;
   current: number;
   states: CellState[];
+  backfillDates?: string[];
 };
 export function HistoryGrid({
   rows,
@@ -93,15 +94,20 @@ export function HistoryGrid({
                     className={date === today ? "today-column" : ""}
                   >
                     <button
-                      className={`grid-cell state-${row.states[index]}`}
+                      className={`grid-cell ${row.backfillDates?.includes(date) ? "state-before-start" : `state-${row.states[index]}`}`}
                       disabled={
                         row.states[index] === "future" ||
-                        row.states[index] === "unscheduled"
+                        (row.states[index] === "unscheduled" &&
+                          !row.backfillDates?.includes(date))
                       }
-                      aria-label={`${row.name}, ${date}, ${stateLabels[row.states[index]]}`}
+                      aria-label={`${row.name}, ${date}, ${row.backfillDates?.includes(date) ? "Log earlier day" : stateLabels[row.states[index]]}`}
                       onClick={() => onCell(row.id, date)}
                     >
-                      <StateMark state={row.states[index]} />
+                      {row.backfillDates?.includes(date) ? (
+                        <Plus size={16} aria-hidden="true" />
+                      ) : (
+                        <StateMark state={row.states[index]} />
+                      )}
                     </button>
                   </td>
                 ))}
@@ -113,6 +119,11 @@ export function HistoryGrid({
           </tbody>
         </table>
       </div>
+      {rows.some((row) => row.backfillDates?.length) && (
+        <p className="help-text">
+          Tap a + to log a day before you started tracking.
+        </p>
+      )}
       <div className="grid-legend">
         {(["met", "not-met", "unlogged", "unscheduled"] as const).map(
           (state) => (

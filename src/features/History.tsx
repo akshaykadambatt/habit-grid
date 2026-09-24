@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { HistoryGrid } from "../components/HistoryGrid";
 import {
   addDays,
+  canBackfill,
   dayState,
   formatDate,
   streaks,
@@ -56,6 +57,7 @@ export function History({
     color: h.color,
     current: streaks(h, data.entries, today).current,
     states: days.map((d) => dayState(h, d, data.entries, today)),
+    backfillDates: days.filter((d) => canBackfill(h, d, today)),
   }));
   return (
     <>

@@ -38,6 +38,8 @@ Open the app in Safari, tap Share → Add to Home Screen, and keep Open as Web A
 
 Missing entries never count as success. Rest days are neutral. Past missed/unlogged scheduled days break streaks; today’s unlogged entry stays pending. Schedule and target changes preserve older rule versions. Sleep belongs to the waking date.
 
+In History, tap an existing date to edit it, or a **+** to log a day before the habit's current start. Saving an earlier entry moves the start back using its original schedule and target; later rule changes remain intact. Scheduled days from the new start count in reviews and streaks. The start change and entry save together; Undo restores both unless the habit has since been edited elsewhere. Rest days and future dates remain unavailable.
+
 Local mode and cloud profiles are separate. Export a local backup and import it after sign-in to move local data to your account. Cloud imports stage a new dataset and switch only after all records are uploaded; previous datasets remain inactive in Firestore for recoverability. This version supports 200 habits (including archived), 50,000 backup entries, and 10 MB backup files.
 
 Google sign-out clears the device’s cloud cache. Close other app tabs if cache clearing cannot complete. Export backups regularly in device-local mode.
