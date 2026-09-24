@@ -112,6 +112,7 @@ export function useHabits() {
         const nextDataset = profileData?.dataset || "primary";
         if (nextDataset === active) return;
         active = nextDataset;
+        setSync("loading");
         dataset.current = active;
         setActiveDataset(active);
         unsubscribers.forEach((stop) => stop());

@@ -1,4 +1,5 @@
 import { Check, Minus } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 export type CellState =
   | "met"
@@ -40,9 +41,16 @@ export function HistoryGrid({
   today: string;
   onCell: (id: string, date: string) => void;
 }) {
+  const scroll = useRef<HTMLDivElement>(null);
+  const lastDate = days.at(-1);
+  useEffect(() => {
+    const element = scroll.current;
+    if (element) element.scrollLeft = element.scrollWidth - element.clientWidth;
+  }, [lastDate, days.length]);
   return (
     <>
       <div
+        ref={scroll}
         className="grid-scroll"
         tabIndex={0}
         role="region"

@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
-async function start(page: import("@playwright/test").Page) {
-  await page.goto("/");
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { resolve, extname, sep } from "node:path";
+
+async function start(page: import("@playwright/test").Page, url = "/") {
+  await page.goto(url);
   await page.getByRole("button", { name: "Use this device only" }).click();
   await page.getByRole("button", { name: "Start with 4 habits" }).click();
 }
@@ -77,26 +81,75 @@ test("empty numeric input retains the sheet and shows an error", async ({
 });
 test("production service worker allows an offline reload and check-in", async ({
   page,
-  context,
 }) => {
-  await start(page);
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.reload();
-  await context.setOffline(true);
-  await page.reload();
-  await page
-    .getByRole("button", { name: "Complete Workout", exact: true })
-    .click();
-  await expect(page.getByRole("progressbar")).toHaveAttribute(
-    "aria-valuenow",
-    "1",
-  );
-  await context.setOffline(false);
-  await page.reload();
-  await expect(page.getByRole("progressbar")).toHaveAttribute(
-    "aria-valuenow",
-    "1",
-  );
+  // Stop the actual origin: WebKit's offline emulation breaks even valid
+  // service-worker responses (https://github.com/microsoft/playwright/issues/42775).
+  const root = resolve("dist");
+  const types: Record<string, string> = {
+    ".html": "text/html",
+    ".js": "text/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".webmanifest": "application/manifest+json",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+  };
+  const server = createServer(async (request, response) => {
+    const pathname = new URL(request.url || "/", "http://localhost").pathname;
+    const file = resolve(
+      root,
+      "." + (pathname === "/" ? "/index.html" : pathname),
+    );
+    if (!file.startsWith(root + sep)) {
+      response.writeHead(403).end();
+      return;
+    }
+    try {
+      const content = await readFile(file);
+      response.writeHead(200, {
+        "Content-Type": types[extname(file)] || "application/octet-stream",
+      });
+      response.end(content);
+    } catch {
+      response.writeHead(404).end();
+    }
+  });
+  const listen = (port: number) =>
+    new Promise<void>((done) => server.listen(port, "127.0.0.1", done));
+  const stop = () =>
+    new Promise<void>((done) => {
+      server.close(() => done());
+      server.closeAllConnections();
+    });
+  await listen(0);
+  const port = (server.address() as import("node:net").AddressInfo).port;
+  try {
+    await start(page, `http://127.0.0.1:${port}/`);
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+    });
+    await page.reload();
+    await expect
+      .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
+      .toBe(true);
+    await stop();
+    await page.reload();
+    await page
+      .getByRole("button", { name: "Complete Workout", exact: true })
+      .click();
+    await expect(page.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    );
+    await listen(port);
+    await page.reload();
+    await expect(page.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    );
+  } finally {
+    await stop();
+  }
 });
 test("phone widths have no page overflow and generous check-in targets", async ({
   page,
