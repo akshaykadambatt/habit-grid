@@ -26,6 +26,8 @@ Run `npm run check` for type checking, unit tests, and a production PWA build. R
 3. Set your project in `.firebaserc`. Authorize your Hosting domain and development host under Authentication settings.
 4. Run `npm run check`, `npm run test:rules`, then `firebase deploy --only hosting,firestore`.
 
+Use the domain serving the app as `VITE_FIREBASE_AUTH_DOMAIN` (for this deployment, `habit-grid-akn6.web.app`), and authorize `https://<domain>/__/auth/handler` in Google's OAuth redirect URIs. The SDK also selects the current project's Hosting domain automatically. Keep Firebase's `/__/` routes outside the service-worker navigation fallback. Phones and installed PWAs use same-tab Google sign-in; desktop browsers use a popup with a redirect fallback when blocked. Returned sign-in errors are shown on the sign-in screen.
+
 The configured deployment uses `habit-grid-akn6` with Firestore in Montréal (`northamerica-northeast1`). No billing account, Functions, notification scheduler, or Cloud Storage is needed. Deployment is manual; GitHub Actions validates changes but does not hold Firebase deployment credentials.
 
 ## iPhone installation

@@ -15,7 +15,7 @@ import {
   type DocumentData,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth, db, finishSignIn } from "./firebase";
 import {
   addDays,
   emptyData,
@@ -48,6 +48,7 @@ export function useHabits() {
   dataRef.current = data;
   const [sync, setSync] = useState<SyncState>("loading");
   const [error, setError] = useState("");
+  const [authError, setAuthError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
   const dataset = useRef("primary");
   const [activeDataset, setActiveDataset] = useState("primary");
@@ -63,17 +64,23 @@ export function useHabits() {
     Object.values(snapshotPending.current).some(Boolean);
   const cloud = !!user && !!db;
   useEffect(() => {
+    let active = true;
+    void finishSignIn().then((message) => {
+      if (active) setAuthError(message);
+    });
     const update = () => setOnline(navigator.onLine);
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
     const stop = auth
       ? onAuthStateChanged(auth, (u) => {
           setUser(u);
+          if (u) setAuthError("");
           setAuthReady(true);
           setData(emptyData());
         })
       : () => {};
     return () => {
+      active = false;
       stop();
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
@@ -417,6 +424,7 @@ export function useHabits() {
     replaceData,
     retry,
     error,
+    authError,
     setError,
     sync: error ? "error" : !online ? "offline" : sync,
     online,
