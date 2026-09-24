@@ -292,3 +292,44 @@ test("phone widths have no page overflow and generous check-in targets", async (
     }
   }
 });
+
+test("system theme follows the device while explicit light/dark choices survive reloads", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await start(page);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".habit-row").first()).toHaveCSS(
+    "background-color",
+    "rgb(25, 35, 28)",
+  );
+  await page.getByRole("button", { name: "Log Sleep", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCSS(
+    "background-color",
+    "rgb(25, 35, 28)",
+  );
+  await expect(
+    page.getByRole("textbox", { name: "hours", exact: true }),
+  ).toHaveCSS("color", "rgb(237, 243, 232)");
+  await page.getByRole("dialog").press("Escape");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    "content",
+    "#101813",
+  );
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "System", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});

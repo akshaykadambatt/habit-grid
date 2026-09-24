@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
+      includeAssets: ["favicon.svg", "apple-touch-icon-v2.png"],
       manifest: {
         name: "habit-grid",
         short_name: "habit-grid",
@@ -19,15 +19,15 @@ export default defineConfig({
         scope: "/",
         id: "/",
         icons: [
-          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icon-v2-192.png", sizes: "192x192", type: "image/png" },
           {
-            src: "/icon-512.png",
+            src: "/icon-v2-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "/icon-maskable.png",
+            src: "/icon-v2-maskable.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

@@ -171,7 +171,7 @@ export function Today({
                   className={h?.color}
                   style={{
                     background: met ? "var(--habit)" : "transparent",
-                    border: met ? "none" : "1px solid #c6d0bc",
+                    border: met ? "none" : "1px solid var(--control-line)",
                   }}
                 />
               );

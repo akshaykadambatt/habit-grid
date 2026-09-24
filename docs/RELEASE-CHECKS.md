@@ -18,7 +18,7 @@ Test data is synthetic and stored in a separate device-local browser profile.
 - Phone and desktop Today screenshots visually reviewed.
 - History with 12 synthetic habits and 210 entries, weekly review, long-name wrapping, entry sheets, and Settings visually reviewed on a phone viewport.
 - Valid backup import and unsupported-version rejection checked through the UI. Unit tests cover round trips and corrupt inputs.
-- Firebase Google provider and authorized Hosting domains configured; billing remains disabled. Real Google account sign-in and cross-device writes have not yet been certified.
+- Firebase Google provider and authorized Hosting domains configured; billing remains disabled. The reporting user confirmed Google sign-in in phone Chrome after the same-origin auth fix. Cross-device writes have not yet been certified.
 - Optional, feature-detected WebMCP tools verified on the deployed app: listing today's habits returned the visible synthetic profile, and opening a check-in displayed the matching sheet without recording a completion.
 
 The offline browser test stops its own HTTP origin after the service worker has taken control, then reloads and checks in from cache before restoring the origin. This avoids a known Playwright WebKit offline-emulation issue while still requiring a working cached app shell. It does not certify Firestore offline-to-online synchronization.
@@ -27,4 +27,4 @@ The offline browser test stops its own HTTP origin after the service worker has 
 
 On a real iPhone: Google sign-in; Add to Home Screen; standalone relaunch; decimal keyboard and sheet fit; VoiceOver; larger accessibility text; offline reload and queued cloud writes; reconnect; sign out; verify phone/desktop cloud synchronization.
 
-Dark mode is a future sprint. No notifications are present.
+Dark mode includes System/Light/Dark selection, persisted per device before initial rendering, system-change handling, semantic surfaces, contrasting controls, and matching browser theme color. Tests check core light/dark text and control contrast plus preference persistence. PWA icon artwork is generated from a shared SVG with mask-safe padding. No notifications are present.
