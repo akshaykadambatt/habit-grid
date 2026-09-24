@@ -45,7 +45,7 @@ export function useHabits() {
       if(nextDataset===active)return;
       active=nextDataset;dataset.current=active;unsubscribers.forEach(stop=>stop());
       setData(old=>({...old,habits:[],entries:{}}));
-      const base=['users',uid,'datasets',active];
+      const base=['users',uid,'datasets',active] as const;
       const boundary=addDays(localDate(settings.timezone),-90);
       let habitsReady=false,entriesReady=false;
       const ready=()=>{if(habitsReady&&entriesReady)setSync('synced');};
@@ -73,7 +73,7 @@ export function useHabits() {
   },[authReady,cloud,user,localMode]);
 
   function persistLocal(next:Data) {
-    try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next));setData(next);setSync('local');setError('');}
+    try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next));dataRef.current=next;setData(next);setSync('local');setError('');}
     catch{setError('This device could not save your change. Free browser storage and try again.');setSync('error');throw new Error('Device storage is full or unavailable.');}
   }
   function send(operation:()=>Promise<unknown>) {
@@ -84,17 +84,17 @@ export function useHabits() {
     const id=entryId(entry.habitId,entry.date);
     const next={...dataRef.current,entries:{...dataRef.current.entries,[id]:entry}};
     if(!cloud){persistLocal(next);return;}
-    setData(next);send(()=>setDoc(doc(db!,'users',user!.uid,'datasets',dataset.current,'entries',id),entry));
+    dataRef.current=next;setData(next);send(()=>setDoc(doc(db!,'users',user!.uid,'datasets',dataset.current,'entries',id),entry));
   }
   function saveHabits(habits:Habit[]) {
     if(!cloud){persistLocal({...dataRef.current,habits});return;}
     const changed=habits.filter(h=>JSON.stringify(h)!==JSON.stringify(dataRef.current.habits.find(old=>old.id===h.id)));
-    setData(old=>({...old,habits}));
+    dataRef.current={...dataRef.current,habits};setData(dataRef.current);
     send(()=>{const batch=writeBatch(db!);for(const habit of changed)batch.set(doc(db!,'users',user!.uid,'datasets',dataset.current,'habits',habit.id),habit);return batch.commit();});
   }
   function saveSettings(settings:Settings) {
     if(!cloud){persistLocal({...dataRef.current,settings});return;}
-    setData(old=>({...old,settings}));send(()=>setDoc(doc(db!,'users',user!.uid),{...settings,dataset:dataset.current}));
+    dataRef.current={...dataRef.current,settings};setData(dataRef.current);send(()=>setDoc(doc(db!,'users',user!.uid),{...settings,dataset:dataset.current}));
   }
   async function replaceData(next:Data) {
     if(!cloud){persistLocal(next);return;}
