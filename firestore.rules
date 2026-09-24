@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function date(value) { return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function settings(data) {
+      return data.keys().hasOnly(['version','timezone','onboarded','installDismissed','lastBackup','dataset'])
+        && data.version == 1 && data.timezone is string && data.timezone.size() <= 100
+        && data.onboarded is bool && data.installDismissed is bool
+        && (data.lastBackup == null || data.lastBackup is string)
+        && data.dataset is string && data.dataset.matches('^[a-zA-Z0-9-]{1,64}$');
+    }
+    match /users/{uid} {
+      allow read: if owner(uid);
+      allow create, update: if owner(uid) && settings(request.resource.data);
+      match /datasets/{dataset}/habits/{habitId} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.keys().hasOnly(['id','name','color','icon','order','createdOn','archivedOn','rules'])
+          && request.resource.data.id == habitId
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+          && request.resource.data.color in ['mint','lavender','sky','peach','yellow','rose']
+          && request.resource.data.icon in ['workout','food','sleep','leaf','habit']
+          && request.resource.data.order is number && date(request.resource.data.createdOn)
+          && (request.resource.data.archivedOn == null || date(request.resource.data.archivedOn))
+          && request.resource.data.rules is list && request.resource.data.rules.size() > 0 && request.resource.data.rules.size() <= 500;
+      }
+      match /datasets/{dataset}/entries/{entryId} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.keys().hasOnly(['habitId','date','status','value','updatedAt'])
+          && request.resource.data.habitId is string
+          && entryId == request.resource.data.habitId + '_' + request.resource.data.date
+          && date(request.resource.data.date)
+          && request.resource.data.status in ['met','not-met','unlogged']
+          && (request.resource.data.value == null || (request.resource.data.value is number && request.resource.data.value >= 0 && request.resource.data.value <= 1000000))
+          && request.resource.data.updatedAt is string;
+      }
+    }
+  }
+}
