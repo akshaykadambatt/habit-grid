@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, LayoutGrid, CalendarDays, Settings2 } from "lucide-react";
 import { useAgentTools } from "./data/useAgentTools";
 import { useHabits } from "./data/useHabits";
+import { useTheme } from "./data/useTheme";
 import {
   localDate,
   formatDate,
@@ -23,6 +24,7 @@ import { HabitEditor } from "./features/HabitEditor";
 
 type Page = "today" | "history" | "settings";
 export default function App() {
+  const theme = useTheme();
   const store = useHabits();
   const { data } = store;
   const [page, setPage] = useState<Page>("today");
@@ -299,6 +301,7 @@ export default function App() {
               />
             ) : (
               <Settings
+                theme={theme}
                 data={data}
                 user={store.user}
                 onHabits={store.saveHabits}

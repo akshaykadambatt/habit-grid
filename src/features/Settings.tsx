@@ -9,7 +9,11 @@ import {
   LogOut,
   Cloud,
   SlidersHorizontal,
+  Monitor,
+  Sun,
+  Moon,
 } from "lucide-react";
+import type { useTheme } from "../data/useTheme";
 import { Sheet } from "../components/Sheet";
 import { HabitIcon } from "../components/HabitRow";
 import { login, logout } from "../data/firebase";
@@ -22,6 +26,7 @@ import {
 } from "../domain/model";
 import type { User } from "firebase/auth";
 export function Settings({
+  theme,
   data,
   user,
   onHabits,
@@ -32,6 +37,7 @@ export function Settings({
   onAdd,
   pending,
 }: {
+  theme: ReturnType<typeof useTheme>;
   data: Data;
   user: User | null;
   onHabits: (habits: Habit[]) => void;
@@ -161,6 +167,36 @@ export function Settings({
             Connect Google
           </button>
         )}
+      </section>
+      <section className="settings-section">
+        <h2>Appearance</h2>
+        <p className="help-text">
+          A comfortable view, day or night. This choice is saved on this device.
+        </p>
+        <div
+          className="segmented theme-picker"
+          role="group"
+          aria-label="App appearance"
+        >
+          {(
+            [
+              { value: "system", label: "System", Icon: Monitor },
+              { value: "light", label: "Light", Icon: Sun },
+              { value: "dark", label: "Dark", Icon: Moon },
+            ] as const
+          ).map(({ value, label, Icon }) => (
+            <button
+              type="button"
+              key={value}
+              aria-pressed={theme.preference === value}
+              className={theme.preference === value ? "selected" : ""}
+              onClick={() => theme.choose(value)}
+            >
+              <Icon size={18} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
       </section>
       <section className="settings-section">
         <div className="settings-heading">

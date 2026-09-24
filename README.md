@@ -10,9 +10,12 @@ A quiet place to build consistency. A phone-first habit tracker with quick check
 - History: editable habit-by-day grid, streaks, and weekly review.
 - Settings: habit management, timezone, backup, and iPhone installation help.
 - Make habits your own with 48 searchable line icons and 18 curated pastel colors. Appearance is preserved in cloud sync and backups, and can be changed later.
+- Settings → Appearance offers System, Light, and Dark. The device-local preference applies before the app renders and follows system changes when System is selected.
 - React + TypeScript + Vite. Firebase Authentication, Firestore, and static Hosting on Spark. No notifications, billing services, or health prescriptions.
 
 See [the roadmap](docs/ROADMAP.md) and [architecture](docs/ARCHITECTURE.md).
+
+The home-screen icon uses a dark forest background and a colorful habit grid. `public/app-icon.svg` is the editable source; `npm run icons` regenerates the favicon and regular, maskable, and Apple touch PNGs. Versioned icon URLs let platforms detect the updated artwork. Installed icon refresh timing is controlled by the browser/OS.
 
 ## Development
 

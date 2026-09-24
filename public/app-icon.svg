@@ -9,7 +9,7 @@
       <stop offset="1" stop-color="#BBD79C"/>
     </linearGradient>
   </defs>
-  <rect id="background" rx="112" width="512" height="512" fill="url(#forest)"/>
+  <rect id="background" width="512" height="512" fill="url(#forest)"/>
   <g>
     <rect x="124" y="124" width="76" height="76" rx="19" fill="#82B29A"/>
     <rect x="218" y="124" width="76" height="76" rx="19" fill="#C7DDB7"/>
