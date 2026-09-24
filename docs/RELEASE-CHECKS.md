@@ -19,7 +19,7 @@ Test data is synthetic and stored in a separate device-local browser profile.
 - History with 12 synthetic habits and 210 entries, weekly review, long-name wrapping, entry sheets, and Settings visually reviewed on a phone viewport.
 - Valid backup import and unsupported-version rejection checked through the UI. Unit tests cover round trips and corrupt inputs.
 - Firebase Google provider and authorized Hosting domains configured; billing remains disabled. Real Google account sign-in and cross-device writes have not yet been certified.
-- WebMCP integration is optional and feature-detected; the verification browser did not expose registered tools.
+- Optional, feature-detected WebMCP tools verified on the deployed app: listing today's habits returned the visible synthetic profile, and opening a check-in displayed the matching sheet without recording a completion.
 
 The offline browser test stops its own HTTP origin after the service worker has taken control, then reloads and checks in from cache before restoring the origin. This avoids a known Playwright WebKit offline-emulation issue while still requiring a working cached app shell. It does not certify Firestore offline-to-online synchronization.
 
