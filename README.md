@@ -10,7 +10,7 @@ A quiet place to build consistency. A phone-first habit tracker with quick check
 - History: a continuous, horizontally scrolling habit timeline with pinned names, Comfortable/Compact views, date jump, streaks, and weekly review. The full-width phone chart grows with all habit rows; vertical gestures scroll the page. Only nearby date columns render, keeping years of history light.
 - Settings: habit management, timezone, backup, and iPhone installation help.
 - Make habits your own with 48 searchable line icons and 18 curated pastel colors. Appearance is preserved in cloud sync and backups, and can be changed later.
-- Settings → Appearance offers System, Light, and Dark. The device-local preference applies before the app renders and follows system changes when System is selected.
+- Settings → Appearance offers five previewable themes: Botanical, Electric, Clay, Paper, and Bloom. Each has its own colors, corners, and surfaces, plus independent System/Light/Dark selection. Device-local preferences apply before the app renders. Habit identity colors stay unchanged.
 - React + TypeScript + Vite. Firebase Authentication, Firestore, and static Hosting on Spark. No notifications, billing services, or health prescriptions.
 
 See [the roadmap](docs/ROADMAP.md) and [architecture](docs/ARCHITECTURE.md).

@@ -10,15 +10,24 @@
     <script>
       (() => {
         let preference = "system";
+        let scheme = "botanical";
         try {
           preference =
             localStorage.getItem("habit-grid.appearance") || "system";
+          const storedScheme = localStorage.getItem("habit-grid.color-scheme");
+          if (
+            ["botanical", "electric", "clay", "paper", "bloom"].includes(
+              storedScheme,
+            )
+          )
+            scheme = storedScheme;
         } catch {}
         const dark =
           preference === "dark" ||
           (preference !== "light" &&
             matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.dataset.theme = dark ? "dark" : "light";
+        document.documentElement.dataset.scheme = scheme;
         document.documentElement.style.colorScheme = dark ? "dark" : "light";
         document.querySelector('meta[name="theme-color"]').content = dark
           ? "#101813"

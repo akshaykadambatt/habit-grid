@@ -4,6 +4,10 @@
 
 Light, colorful, compact. Warm off-white background, ink text, pale mint/lavender/sky/peach/yellow/rose identity colors, and deep-green primary actions. Native system typography. Semantic tokens support System, Light, and Dark appearance.
 
+Settings offers five app themes: Botanical (original soft green), Electric (cobalt with outlined cards and offset shadows), Clay (warm terracotta), Paper (flat monochrome with square corners), and Bloom (rounded violet with soft shadows). Each has a full light and dark palette. Semantic radius, border, and shadow tokens style cards, controls, and sheets; circular completion controls and gapless compact history retain their functional shapes. Habit identity colors are independent.
+
+Appearance mode and color theme are separate per-device preferences, applied before React renders and synchronized between tabs. Invalid or inaccessible local storage falls back to Botanical/System; selections still apply for the current session if storage is unavailable. These cosmetic preferences do not affect the Firebase account, habits, entries, or backup schema. Preview cards use the same tokens as the full app, including dark palettes. Browser theme color follows the selected palette.
+
 Today, History, Settings. Four starter habits are optional. Completion never reorders habits. Status is conveyed by shape and text as well as color. Primary tap targets are 48px; all interactive targets at least 44px.
 
 ## Boundaries
