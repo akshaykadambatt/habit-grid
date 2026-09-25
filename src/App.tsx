@@ -128,7 +128,6 @@ export default function App() {
   }
   const syncText = {
     loading: "Loading your habits…",
-    local: "Saved on this device",
     synced: "All changes synced",
     pending: "Waiting to sync",
     offline: "Offline · saved on this device",
@@ -142,11 +141,11 @@ export default function App() {
         <div className="skeleton" />
       </div>
     );
-  if (!store.user && !store.localMode)
+  if (!store.user)
     return (
       <>
         <AppUpdate />
-        <Welcome onLocal={store.startLocal} initialError={store.authError} />
+        <Welcome initialError={store.authError} />
       </>
     );
   const activeCount = data.habits.filter((h) => !h.archivedOn).length;

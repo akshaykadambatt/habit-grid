@@ -1,15 +1,10 @@
 import { useState } from "react";
-import { ArrowRight, Check, Cloud, MonitorSmartphone } from "lucide-react";
+import { ArrowRight, Check, Cloud } from "lucide-react";
 import { login, configured } from "../data/firebase";
 import { starterHabits, type Habit } from "../domain/model";
+import { LegacyBackup } from "../components/LegacyBackup";
 import { HabitIcon } from "../components/HabitRow";
-export function Welcome({
-  onLocal,
-  initialError = "",
-}: {
-  onLocal: () => void;
-  initialError?: string;
-}) {
+export function Welcome({ initialError = "" }: { initialError?: string }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function connect() {
@@ -64,10 +59,12 @@ export function Welcome({
           {busy ? "Opening Google…" : "Continue with Google"}
           <ArrowRight size={18} />
         </button>
-        <button className="local-button" onClick={onLocal}>
-          <MonitorSmartphone size={17} />
-          Use this device only
-        </button>
+        {!configured && (
+          <p className="error-message" role="alert">
+            Sign-in is temporarily unavailable. Please try again later.
+          </p>
+        )}
+        <LegacyBackup />
         {(error || (!busy && initialError)) && (
           <p className="error-message" role="alert">
             {error || initialError}

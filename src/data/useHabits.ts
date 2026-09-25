@@ -28,21 +28,10 @@ import {
 } from "../domain/model";
 import { parseBackup } from "../domain/backup";
 
-const LOCAL_KEY = "habit-grid.local.v1";
-const MODE_KEY = "habit-grid.local-mode";
-export type SyncState =
-  | "loading"
-  | "local"
-  | "synced"
-  | "pending"
-  | "offline"
-  | "error";
+export type SyncState = "loading" | "synced" | "pending" | "offline" | "error";
 export function useHabits() {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(!auth);
-  const [localMode, setLocalMode] = useState(
-    () => localStorage.getItem(MODE_KEY) === "true",
-  );
   const [data, setData] = useState<Data>(emptyData);
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -73,6 +62,7 @@ export function useHabits() {
     window.addEventListener("offline", update);
     const stop = auth
       ? onAuthStateChanged(auth, (u) => {
+          setSync("loading");
           setUser(u);
           if (u) setAuthError("");
           setAuthReady(true);
@@ -91,16 +81,8 @@ export function useHabits() {
     setError("");
     retries.current = [];
     if (!cloud) {
-      try {
-        const raw = localMode ? localStorage.getItem(LOCAL_KEY) : null;
-        setData(raw ? parseBackup(raw) : emptyData());
-        setSync("local");
-      } catch {
-        setError(
-          "Could not read saved data on this device. Keep a copy of your browser data before clearing storage.",
-        );
-        setSync("error");
-      }
+      setData(emptyData());
+      setSync("loading");
       return;
     }
     const uid = user!.uid;
@@ -218,22 +200,10 @@ export function useHabits() {
       stopProfile();
       unsubscribers.forEach((stop) => stop());
     };
-  }, [authReady, cloud, user, localMode]);
+  }, [authReady, cloud, user]);
 
-  function persistLocal(next: Data) {
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(next));
-      dataRef.current = next;
-      setData(next);
-      setSync("local");
-      setError("");
-    } catch {
-      setError(
-        "This device could not save your change. Free browser storage and try again.",
-      );
-      setSync("error");
-      throw new Error("Device storage is full or unavailable.");
-    }
+  function requireAccount() {
+    if (!cloud) throw new Error("Sign in with Google to save your habits.");
   }
   function send(operation: () => Promise<unknown>) {
     pendingCount.current++;
@@ -265,10 +235,7 @@ export function useHabits() {
           )
         : dataRef.current.habits,
     };
-    if (!cloud) {
-      persistLocal(next);
-      return;
-    }
+    requireAccount();
     dataRef.current = next;
     setData(next);
     send(() => {
@@ -306,10 +273,7 @@ export function useHabits() {
       throw new Error(
         "This version supports up to 200 habits, including archived habits.",
       );
-    if (!cloud) {
-      persistLocal({ ...dataRef.current, habits });
-      return;
-    }
+    requireAccount();
     const changed = habits.filter(
       (h) =>
         JSON.stringify(h) !==
@@ -336,10 +300,7 @@ export function useHabits() {
     });
   }
   function saveSettings(settings: Settings) {
-    if (!cloud) {
-      persistLocal({ ...dataRef.current, settings });
-      return;
-    }
+    requireAccount();
     dataRef.current = { ...dataRef.current, settings };
     setData(dataRef.current);
     send(() =>
@@ -351,10 +312,7 @@ export function useHabits() {
   }
   async function replaceData(next: Data) {
     parseBackup(JSON.stringify(next));
-    if (!cloud) {
-      persistLocal(next);
-      return;
-    }
+    requireAccount();
     if (!online)
       throw new Error("Connect to the internet before replacing cloud data.");
     const nextDataset = crypto.randomUUID();
@@ -396,10 +354,6 @@ export function useHabits() {
     }
     pending.forEach(send);
   }
-  function startLocal() {
-    localStorage.setItem(MODE_KEY, "true");
-    setLocalMode(true);
-  }
   const watchHistory = useCallback(
     (start: string, end: string) => {
       if (!db || !user) return () => {};
@@ -436,8 +390,6 @@ export function useHabits() {
     data,
     user,
     authReady,
-    localMode,
-    startLocal,
     saveEntry,
     saveHabits,
     saveSettings,

@@ -16,7 +16,8 @@ import {
 import type { useTheme } from "../data/useTheme";
 import { Sheet } from "../components/Sheet";
 import { HabitIcon } from "../components/HabitRow";
-import { login, logout } from "../data/firebase";
+import { LegacyBackup } from "../components/LegacyBackup";
+import { logout } from "../data/firebase";
 import { exportBackup, parseBackup } from "../domain/backup";
 import {
   localDate,
@@ -39,7 +40,7 @@ export function Settings({
 }: {
   theme: ReturnType<typeof useTheme>;
   data: Data;
-  user: User | null;
+  user: User;
   onHabits: (habits: Habit[]) => void;
   onSettings: (settings: SettingsType) => void;
   onImport: (data: Data) => Promise<void>;
@@ -125,14 +126,6 @@ export function Settings({
       setBusy(false);
     }
   }
-  async function connect() {
-    try {
-      setError("");
-      await login();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in did not complete.");
-    }
-  }
   return (
     <div className="settings-layout">
       {error && (
@@ -150,24 +143,18 @@ export function Settings({
           <h2>Your account</h2>
           <Cloud size={20} />
         </div>
-        <p className="settings-value">{user?.email || "This device only"}</p>
+        <p className="settings-value">{user.email}</p>
         <p className="help-text">
-          {user
-            ? "Your habits are private and sync with your Google account."
-            : "Your progress is stored in this browser. Export a backup before clearing browser data. Signing in opens your separate cloud profile; export first to move these habits there."}
+          Your habits and history are saved to Firebase and sync across devices
+          signed in to this Google account. Offline changes sync when you
+          reconnect.
         </p>
-        {user ? (
-          <button className="secondary-button" onClick={() => setSignout(true)}>
-            <LogOut size={17} />
-            Sign out
-          </button>
-        ) : (
-          <button className="primary-button" onClick={connect}>
-            <Cloud size={18} />
-            Connect Google
-          </button>
-        )}
+        <button className="secondary-button" onClick={() => setSignout(true)}>
+          <LogOut size={17} />
+          Sign out
+        </button>
       </section>
+      <LegacyBackup />
       <section className="settings-section">
         <h2>Appearance</h2>
         <p className="help-text">

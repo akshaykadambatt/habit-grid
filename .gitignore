@@ -12,3 +12,4 @@ coverage/
 service-account*.json
 backups/
 *.tsbuildinfo
+dist-e2e/

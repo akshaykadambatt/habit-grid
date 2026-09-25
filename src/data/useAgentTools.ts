@@ -40,7 +40,7 @@ export function useAgentTools(
       name: "list_today_habits",
       title: "List today’s habits",
       description:
-        "Read scheduled habits and their current check-in status for the signed-in or device-local profile.",
+        "Read scheduled habits and their current check-in status for the signed-in account.",
       inputSchema: {
         type: "object",
         properties: {},

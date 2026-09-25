@@ -2,7 +2,8 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  build: { outDir: mode === "e2e" ? "dist-e2e" : "dist" },
   plugins: [
     react(),
     VitePWA({
@@ -48,4 +49,4 @@ export default defineConfig({
       ? []
       : ["tests/firestore.rules.test.ts"],
   },
-});
+}));

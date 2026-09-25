@@ -2,11 +2,30 @@ import { test, expect } from "@playwright/test";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
+import { randomUUID } from "node:crypto";
+import { emptyData, starterHabits } from "../../src/domain/model";
 
+async function signIn(page: import("@playwright/test").Page, id: string) {
+  await page.waitForFunction(() => "__signInTestUser" in window);
+  await page.evaluate(async (uid) => {
+    await (
+      window as unknown as { __signInTestUser: (id: string) => Promise<void> }
+    ).__signInTestUser(uid);
+  }, id);
+}
+async function synced(page: import("@playwright/test").Page) {
+  await expect(
+    page.getByText("All changes synced", { exact: true }),
+  ).toBeVisible({ timeout: 15000 });
+}
 async function start(page: import("@playwright/test").Page, url = "/") {
   await page.goto(url);
-  await page.getByRole("button", { name: "Use this device only" }).click();
+  await expect(
+    page.getByRole("button", { name: "Use this device only" }),
+  ).toHaveCount(0);
+  await signIn(page, randomUUID());
   await page.getByRole("button", { name: "Start with 4 habits" }).click();
+  await synced(page);
 }
 test("daily check-in, undo, numeric target and reload persistence", async ({
   page,
@@ -27,6 +46,7 @@ test("daily check-in, undo, numeric target and reload persistence", async ({
   await page.getByRole("button", { name: "Log Sleep", exact: true }).click();
   await page.getByRole("textbox", { name: "hours", exact: true }).fill("9");
   await page.getByRole("button", { name: "Save entry" }).click();
+  await synced(page);
   await page.reload();
   await expect(page.getByRole("progressbar")).toHaveAttribute(
     "aria-valuenow",
@@ -89,6 +109,7 @@ test("log yesterday for a new habit, undo its earlier start, and retain a numeri
     .click();
   await page.getByRole("textbox", { name: "hours", exact: true }).fill("9");
   await page.getByRole("button", { name: "Save entry", exact: true }).click();
+  await synced(page);
   await page.reload();
   await page.getByRole("button", { name: "History", exact: true }).click();
   await expect(
@@ -168,6 +189,7 @@ test("choose a searchable icon and curated color, preserve them after reload, an
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
   await page.getByRole("button", { name: "Save habit", exact: true }).click();
+  await synced(page);
   await page.reload();
   await page
     .getByRole("button", { name: "Read every day details", exact: true })
@@ -207,7 +229,7 @@ test("production service worker allows an offline reload and check-in", async ({
 }) => {
   // Stop the actual origin: WebKit's offline emulation breaks even valid
   // service-worker responses (https://github.com/microsoft/playwright/issues/42775).
-  const root = resolve("dist");
+  const root = resolve("dist-e2e");
   const types: Record<string, string> = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -251,11 +273,13 @@ test("production service worker allows an offline reload and check-in", async ({
     await page.evaluate(async () => {
       await navigator.serviceWorker.ready;
     });
+    await synced(page);
     await page.reload();
     await expect
       .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
       .toBe(true);
     await stop();
+    await synced(page);
     await page.reload();
     await page
       .getByRole("button", { name: "Complete Workout", exact: true })
@@ -265,6 +289,7 @@ test("production service worker allows an offline reload and check-in", async ({
       "1",
     );
     await listen(port);
+    await synced(page);
     await page.reload();
     await expect(page.getByRole("progressbar")).toHaveAttribute(
       "aria-valuenow",
@@ -315,12 +340,14 @@ test("system theme follows the device while explicit light/dark choices survive 
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Light", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await synced(page);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await synced(page);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
@@ -332,4 +359,113 @@ test("system theme follows the device while explicit light/dark choices survive 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
+test("Google sign-in is required even when an old device-only flag exists, with backup recovery", async ({
+  page,
+}) => {
+  const previous = emptyData();
+  previous.habits = starterHabits("2026-01-01");
+  previous.settings.onboarded = true;
+  await page.addInitScript((raw) => {
+    localStorage.setItem("habit-grid.local-mode", "true");
+    localStorage.setItem("habit-grid.local.v1", raw);
+  }, JSON.stringify(previous));
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Continue with Google" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Use this device only" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Add habit", exact: true }),
+  ).toHaveCount(0);
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download previous habits" }).click();
+  const downloaded = await downloadEvent;
+  expect(
+    JSON.parse(await readFile((await downloaded.path())!, "utf8")),
+  ).toEqual(previous);
+  await signIn(page, randomUUID());
+  await expect(
+    page.getByRole("button", { name: "Start with 4 habits" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("habit-grid.local.v1")),
+  ).toBe(JSON.stringify(previous));
+});
+
+test("habits and yesterday's chart sync between separate signed-in devices", async ({
+  page,
+  browser,
+}) => {
+  const id = randomUUID();
+  await page.goto("/");
+  await signIn(page, id);
+  await page.getByRole("button", { name: "Start with 4 habits" }).click();
+  await synced(page);
+  const secondContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const phone = await secondContext.newPage();
+    await phone.goto("http://127.0.0.1:4173/");
+    await signIn(phone, id);
+    await expect(
+      phone.getByRole("button", { name: "Workout details" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Add habit", exact: true }).click();
+    await page
+      .getByRole("textbox", { name: "Habit name" })
+      .fill("Read across devices");
+    await page.getByRole("button", { name: "Save habit" }).click();
+    await expect(
+      phone.getByRole("button", { name: "Read across devices details" }),
+    ).toBeVisible();
+    await phone
+      .getByRole("button", {
+        name: "Complete Read across devices",
+        exact: true,
+      })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Read across devices details" }),
+    ).toContainText("Goal met");
+    const yesterday = await page.evaluate(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 1);
+      return new Intl.DateTimeFormat("en-CA").format(date);
+    });
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await phone.getByRole("button", { name: "History", exact: true }).click();
+    await phone
+      .getByRole("button", {
+        name: `Workout, ${yesterday}, Log earlier day`,
+        exact: true,
+      })
+      .click();
+    await phone.getByRole("button", { name: "Met", exact: true }).click();
+    await expect(
+      page.getByRole("button", {
+        name: `Workout, ${yesterday}, Met`,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await synced(page);
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Sign out", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Continue with Google" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add habit", exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    await secondContext.close();
+  }
 });
