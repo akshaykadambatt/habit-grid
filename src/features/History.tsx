@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, CalendarDays } from "lucide-react";
 import { HistoryGrid } from "../components/HistoryGrid";
 import {
   addDays,
-  canBackfill,
-  dayState,
   formatDate,
-  streaks,
   review,
   weekStart,
   type Data,
@@ -27,86 +24,126 @@ export function History({
   onAdd: () => void;
   watchHistory: (start: string, end: string) => () => void;
 }) {
-  const [end, setEnd] = useState(today);
+  const [compact, setCompact] = useState(() => {
+    try {
+      return localStorage.getItem("habit-grid.history-density") === "compact";
+    } catch {
+      return false;
+    }
+  });
+  const [visible, setVisible] = useState({
+    start: addDays(today, -6),
+    end: today,
+  });
+  const [focusDate, setFocusDate] = useState<{
+    date: string;
+    request: number;
+  } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [wide, setWide] = useState(
-    () => matchMedia("(min-width: 1200px)").matches,
+  const rangeChanged = useCallback(
+    (start: string, end: string) => setVisible({ start, end }),
+    [],
   );
   useEffect(() => {
-    const media = matchMedia("(min-width: 1200px)");
-    const update = () => setWide(media.matches);
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-  const count = wide ? 14 : 7;
-  const start = addDays(end, 1 - count);
-  useEffect(() => watchHistory(start, end), [start, end, watchHistory]);
-  const days = Array.from({ length: count }, (_, i) => addDays(start, i));
-  const habits = data.habits.filter((h) => showArchived || !h.archivedOn);
-  const previousWeek = addDays(weekStart(today), -7);
-  const summary = review(
-    data.habits,
-    data.entries,
-    previousWeek,
-    addDays(previousWeek, 6),
-    today,
+    let stop = () => {};
+    const timer = setTimeout(() => {
+      stop = watchHistory(visible.start, visible.end);
+    }, 180);
+    return () => {
+      clearTimeout(timer);
+      stop();
+    };
+  }, [visible.start, visible.end, watchHistory]);
+  function chooseDensity(value: boolean) {
+    setCompact(value);
+    try {
+      localStorage.setItem(
+        "habit-grid.history-density",
+        value ? "compact" : "comfortable",
+      );
+    } catch {
+      /* Applies for this session. */
+    }
+  }
+  function goTo(date: string) {
+    if (date >= "2000-01-01" && date <= today)
+      setFocusDate((old) => ({ date, request: (old?.request || 0) + 1 }));
+  }
+  const habits = useMemo(
+    () => data.habits.filter((h) => showArchived || !h.archivedOn),
+    [data.habits, showArchived],
   );
-  const rows = habits.map((h) => ({
-    id: h.id,
-    name: h.name,
-    color: h.color,
-    current: streaks(h, data.entries, today).current,
-    states: days.map((d) => dayState(h, d, data.entries, today)),
-    backfillDates: days.filter((d) => canBackfill(h, d, today)),
-  }));
+  const previousWeek = addDays(weekStart(today), -7);
+  const summary = useMemo(
+    () =>
+      review(
+        data.habits,
+        data.entries,
+        previousWeek,
+        addDays(previousWeek, 6),
+        today,
+      ),
+    [data.habits, data.entries, previousWeek, today],
+  );
   return (
     <>
       <div className="history-toolbar">
         <div>
-          <p className="eyebrow">
-            {wide ? "THE DAYS ADD UP" : "SEVEN DAYS AT A TIME"}
-          </p>
+          <p className="eyebrow">YOUR TIMELINE</p>
           <h2>
-            {formatDate(days[0], { month: "short", day: "numeric" })} –{" "}
-            {formatDate(end, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {visible.start.slice(0, 7) === visible.end.slice(0, 7)
+              ? formatDate(visible.end, { month: "long", year: "numeric" })
+              : `${formatDate(visible.start, { month: "short", ...(visible.start.slice(0, 4) !== visible.end.slice(0, 4) ? { year: "numeric" } : {}) })} – ${formatDate(visible.end, { month: "short", year: "numeric" })}`}
           </h2>
         </div>
         <div className="history-controls">
-          <button
-            className="icon-button"
-            aria-label="Previous week"
-            onClick={() => setEnd(addDays(end, -7))}
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button className="week-today" onClick={() => setEnd(today)}>
+          <label className="history-jump" title="Go to date">
+            <CalendarDays size={20} aria-hidden="true" />
+            <input
+              type="date"
+              aria-label="Go to date"
+              min="2000-01-01"
+              max={today}
+              onChange={(e) => goTo(e.target.value)}
+            />
+          </label>
+          <button className="week-today" onClick={() => goTo(today)}>
             Today
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Next week"
-            disabled={end >= today}
-            onClick={() =>
-              setEnd(addDays(end, 7) > today ? today : addDays(end, 7))
-            }
-          >
-            <ChevronRight size={20} />
           </button>
         </div>
       </div>
+      <div className="history-options">
+        <div
+          className="segmented history-density"
+          role="group"
+          aria-label="History view"
+        >
+          <button
+            aria-pressed={!compact}
+            className={!compact ? "selected" : ""}
+            onClick={() => chooseDensity(false)}
+          >
+            Comfortable
+          </button>
+          <button
+            aria-pressed={compact}
+            className={compact ? "selected" : ""}
+            onClick={() => chooseDensity(true)}
+          >
+            Compact
+          </button>
+        </div>
+      </div>
+      <p className="history-hint">Scroll sideways through your days.</p>
       {habits.length ? (
         <HistoryGrid
-          rows={rows}
-          days={days}
+          habits={habits}
+          entries={data.entries}
           today={today}
-          onCell={(id, date) => {
-            const habit = data.habits.find((h) => h.id === id);
-            if (habit) onEntry(habit, date);
-          }}
+          compact={compact}
+          focusDate={focusDate}
+          onRange={rangeChanged}
+          onCell={onEntry}
         />
       ) : (
         <div className="empty-state">

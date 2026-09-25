@@ -6,6 +6,7 @@
 - Backup: round trip, unsupported formats, duplicate IDs, corrupt schedules/dates/timezones, unknown fields, and orphan entries.
 - Firestore emulator: ownership, anonymous denial, cross-user denial, entry ID/field validation, and malformed settings.
 - Browser suite: check-ins, undo, numeric validation, reload persistence, creation/archive, responsive targets, and service-worker offline reload in Chromium and WebKit.
+- History timeline: 24 habits spanning years, full-width layouts at 320/375/390/430 px, no internal vertical range, page scrolling over the grid, gapless compact cells with 44 px targets, date jumps, preserved edit/resize positions, earlier-date prepending, and bounded rendered column counts.
 - CI runs the application build, tests, and Firestore rules checks without access to production data.
 
 ## Manual browser checks performed

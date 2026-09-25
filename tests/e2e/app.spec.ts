@@ -3,7 +3,13 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { randomUUID } from "node:crypto";
-import { emptyData, starterHabits } from "../../src/domain/model";
+import {
+  emptyData,
+  starterHabits,
+  addDays,
+  localDate,
+  entryId,
+} from "../../src/domain/model";
 
 async function signIn(page: import("@playwright/test").Page, id: string) {
   await page.waitForFunction(() => "__signInTestUser" in window);
@@ -468,4 +474,174 @@ test("habits and yesterday's chart sync between separate signed-in devices", asy
   } finally {
     await secondContext.close();
   }
+});
+
+test("continuous history grows with the page, spans the phone, and preserves position in compact view", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60000); // Includes cloud import, four resizes, editing, and reload on mobile WebKit.
+  await start(page);
+  const fixture = emptyData();
+  fixture.settings.onboarded = true;
+  fixture.habits = Array.from({ length: 24 }, (_, index) => {
+    const habit = starterHabits("2020-01-01")[index % 4];
+    return {
+      ...habit,
+      id: `timeline-${index}`,
+      order: index,
+      name:
+        index === 23
+          ? "A longer habit name that wraps naturally onto multiple lines"
+          : `Practice ${index + 1}`,
+    };
+  });
+  for (const [index, habit] of fixture.habits.slice(0, 6).entries()) {
+    for (let offset = 0; offset < 12; offset++) {
+      if ((offset + index) % 4 === 0) continue;
+      const date = addDays(localDate(fixture.settings.timezone), -offset);
+      fixture.entries[entryId(habit.id, date)] = {
+        habitId: habit.id,
+        date,
+        status: (index + offset) % 5 === 0 ? "not-met" : "met",
+        value: habit.rules[0].kind === "number" ? 9 : null,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+  }
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByLabel("Choose habit backup").setInputFiles({
+    name: "timeline.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(fixture)),
+  });
+  await page.getByRole("button", { name: "Replace data", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0, { timeout: 15000 });
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  const region = page.getByRole("region", {
+    name: "Habit history. Scroll horizontally for more dates.",
+  });
+  await expect(page.getByRole("button", { name: "Previous week" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("button", { name: "Next week" })).toHaveCount(0);
+  for (const width of [320, 375, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect
+      .poll(async () => Math.round((await region.boundingBox())!.width))
+      .toBe(width);
+    await expect
+      .poll(() =>
+        region.evaluate((el) =>
+          Math.abs(el.scrollWidth - el.clientWidth - el.scrollLeft),
+        ),
+      )
+      .toBeLessThan(1);
+    const bounds = await region.boundingBox();
+    expect(Math.abs(bounds!.x)).toBeLessThan(1);
+    expect(
+      await region.evaluate((el) => el.scrollHeight - el.clientHeight),
+    ).toBe(0);
+    expect(bounds!.height).toBeGreaterThan(844);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.screenshot({
+    path: testInfo.outputPath("history-comfortable.png"),
+  });
+  await page.getByLabel("Go to date", { exact: true }).fill("2024-02-29");
+  const earlier = page.getByRole("button", {
+    name: "Practice 1, 2024-02-29, Not logged",
+    exact: true,
+  });
+  await expect(earlier).toBeVisible();
+  await expect
+    .poll(async () => {
+      const cell = await earlier.boundingBox();
+      const area = await region.boundingBox();
+      return (
+        !!cell &&
+        cell.x >= area!.x + 112 &&
+        cell.x + cell.width <= area!.x + area!.width + 1
+      );
+    })
+    .toBe(true);
+  const comfortableHeight = (await region.boundingBox())!.height;
+  await page.getByRole("button", { name: "Compact", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Compact", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: testInfo.outputPath("history-compact.png") });
+  const compactHeight = (await region.boundingBox())!.height;
+  expect(compactHeight).toBeLessThan(comfortableHeight);
+  expect(
+    await earlier.evaluate((el) => getComputedStyle(el.parentElement!).padding),
+  ).toBe("0px");
+  expect(
+    await earlier.evaluate((el) => getComputedStyle(el).borderRadius),
+  ).toBe("0px");
+  const compactCell = await earlier.boundingBox();
+  expect(compactCell!.width).toBeGreaterThanOrEqual(44);
+  expect(compactCell!.height).toBeGreaterThanOrEqual(44);
+  const leftBeforeEdit = await region.evaluate((el) => el.scrollLeft);
+  await earlier.click();
+  await page.getByRole("button", { name: "Met", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Practice 1, 2024-02-29, Met",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(
+    Math.abs((await region.evaluate((el) => el.scrollLeft)) - leftBeforeEdit),
+  ).toBeLessThan(1);
+  // Vertical wheel gestures over the chart must move the document, never an internal panel.
+  const area = await region.boundingBox();
+  await page.mouse.move(
+    area!.x + area!.width - 30,
+    Math.max(100, area!.y + 120),
+  );
+  const pageTop = await page.evaluate(() => scrollY);
+  if (testInfo.project.name === "chromium") await page.mouse.wheel(0, 450);
+  else await page.keyboard.press("PageDown"); // Mobile WebKit has no wheel emulation.
+  await expect
+    .poll(() => page.evaluate(() => scrollY))
+    .toBeGreaterThan(pageTop);
+  expect(await region.evaluate((el) => el.scrollTop)).toBe(0);
+  // Prepending dates preserves the same date at the same horizontal position.
+  await region.evaluate((el) => {
+    el.scrollLeft = 10;
+  });
+  await expect
+    .poll(() => region.evaluate((el) => el.scrollLeft))
+    .toBeGreaterThan(180 * 44);
+  const originalFirstDate = page.getByRole("button", {
+    name: "Practice 1, 2020-01-01, Not logged",
+    exact: true,
+  });
+  await expect(originalFirstDate).toBeAttached();
+  expect(await region.locator("tbody tr").count()).toBe(24);
+  expect(
+    await region.locator("tbody tr").first().locator("button").count(),
+  ).toBeLessThan(40);
+  await page
+    .getByRole("button", { name: "Today", exact: true })
+    .first()
+    .click();
+  await expect
+    .poll(async () =>
+      region.evaluate((el) =>
+        Math.abs(el.scrollWidth - el.clientWidth - el.scrollLeft),
+      ),
+    )
+    .toBeLessThan(1);
+  await page.screenshot({ path: testInfo.outputPath("history-compact.png") });
+  await synced(page);
+  await page.reload();
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Compact", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
