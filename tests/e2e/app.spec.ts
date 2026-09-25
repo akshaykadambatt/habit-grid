@@ -479,6 +479,7 @@ test("habits and yesterday's chart sync between separate signed-in devices", asy
 test("continuous history grows with the page, spans the phone, and preserves position in compact view", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(60000); // Includes cloud import, four resizes, editing, and reload on mobile WebKit.
   await start(page);
   const fixture = emptyData();
   fixture.settings.onboarded = true;
