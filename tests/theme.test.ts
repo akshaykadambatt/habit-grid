@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { APP_THEMES, parseScheme } from "../src/data/themes";
 const styles = readFileSync("src/styles.css", "utf8");
 function variables(block: string) {
   return Object.fromEntries(
@@ -31,7 +32,21 @@ describe("theme contrast", () => {
     ...light,
     ...variables(styles.match(/:root\[data-theme="dark"\]\s*\{([^}]+)\}/)![1]),
   };
-  for (const [name, palette] of Object.entries({ light, dark })) {
+  const palettes: Record<string, Record<string, string>> = { light, dark };
+  for (const { id } of APP_THEMES.filter((theme) => theme.id !== "botanical")) {
+    const overrides = (selector: string) =>
+      variables(
+        styles.slice(styles.indexOf(selector)).match(/\{([^}]+)\}/)![1],
+      );
+    const scheme = overrides(`:root[data-scheme="${id}"]`);
+    palettes[`${id} light`] = { ...light, ...scheme };
+    palettes[`${id} dark`] = {
+      ...dark,
+      ...scheme,
+      ...overrides(`:root[data-theme="dark"][data-scheme="${id}"]`),
+    };
+  }
+  for (const [name, palette] of Object.entries(palettes)) {
     it(`${name} keeps text readable on surfaces, actions, and feedback`, () => {
       for (const [text, background] of [
         ["--ink", "--page"],
@@ -63,4 +78,10 @@ describe("theme contrast", () => {
       }
     });
   }
+});
+
+it("restores supported schemes and safely falls back for invalid stored preferences", () => {
+  for (const { id } of APP_THEMES) expect(parseScheme(id)).toBe(id);
+  for (const value of [null, undefined, "", "unknown", "Dark", {}, 1])
+    expect(parseScheme(value)).toBe("botanical");
 });

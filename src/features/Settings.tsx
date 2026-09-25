@@ -12,7 +12,9 @@ import {
   Monitor,
   Sun,
   Moon,
+  Check,
 } from "lucide-react";
+import { APP_THEMES } from "../data/themes";
 import type { useTheme } from "../data/useTheme";
 import { Sheet } from "../components/Sheet";
 import { HabitIcon } from "../components/HabitRow";
@@ -158,7 +160,8 @@ export function Settings({
       <section className="settings-section">
         <h2>Appearance</h2>
         <p className="help-text">
-          A comfortable view, day or night. This choice is saved on this device.
+          Make it feel like you. Themes and light preferences are saved on this
+          device.
         </p>
         <div
           className="segmented theme-picker"
@@ -184,6 +187,55 @@ export function Settings({
             </button>
           ))}
         </div>
+        <div className="scheme-options" role="group" aria-label="Color theme">
+          {APP_THEMES.map(({ id, name, description }) => (
+            <button
+              key={id}
+              type="button"
+              className="scheme-option"
+              aria-label={`${name} theme`}
+              aria-pressed={theme.scheme === id}
+              onClick={() => theme.chooseScheme(id)}
+            >
+              <span
+                className="scheme-preview"
+                data-scheme={id}
+                aria-hidden="true"
+              >
+                <span className="preview-heading">
+                  <i />
+                  <i />
+                </span>
+                <span className="preview-row">
+                  <i />
+                  <span />
+                  <Check size={13} />
+                </span>
+                <span className="preview-row">
+                  <i />
+                  <span />
+                  <span className="preview-empty" />
+                </span>
+                <span className="preview-grid">
+                  {Array.from({ length: 7 }, (_, index) => (
+                    <i key={index} />
+                  ))}
+                </span>
+              </span>
+              <span className="scheme-caption">
+                <strong>{name}</strong>
+                <span className="scheme-check" aria-hidden="true">
+                  {theme.scheme === id && <Check size={16} />}
+                </span>
+              </span>
+              <span className="scheme-description">{description}</span>
+            </button>
+          ))}
+        </div>
+        <p className="help-text theme-footnote">
+          Every theme includes a light and dark palette. Your habit colors stay
+          yours.
+        </p>
       </section>
       <section className="settings-section">
         <div className="settings-heading">

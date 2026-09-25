@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { randomUUID } from "node:crypto";
+import { APP_THEMES } from "../../src/data/themes";
 import {
   emptyData,
   starterHabits,
@@ -33,6 +34,104 @@ async function start(page: import("@playwright/test").Page, url = "/") {
   await page.getByRole("button", { name: "Start with 4 habits" }).click();
   await synced(page);
 }
+
+test("five app themes style all views, retain entries, and survive reload with independent dark mode", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90000);
+  await start(page);
+  await page
+    .getByRole("button", { name: "Complete Workout", exact: true })
+    .click();
+  await synced(page);
+  const radii = ["18px", "8px", "22px", "0px", "28px"];
+  for (const [index, { id, name }] of APP_THEMES.entries()) {
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page
+      .getByRole("button", { name: `${name} theme`, exact: true })
+      .click();
+    await expect(page.locator("html")).toHaveAttribute("data-scheme", id);
+    await expect(
+      page.getByRole("button", { name: `${name} theme`, exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    const appearance = page.locator(".settings-section").filter({
+      has: page.getByRole("heading", { name: "Appearance", exact: true }),
+    });
+    for (const mode of ["Light", "Dark"]) {
+      await page.getByRole("button", { name: mode, exact: true }).click();
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        mode.toLowerCase(),
+      );
+      await appearance.screenshot({
+        path: testInfo.outputPath(`${id}-${mode.toLowerCase()}-settings.png`),
+      });
+      await page
+        .locator("nav:visible")
+        .getByRole("button", { name: /^Today/ })
+        .click();
+      await expect(page.locator(".habit-row").first()).toHaveCSS(
+        "border-radius",
+        radii[index],
+      );
+      await expect(page.getByRole("progressbar")).toHaveAttribute(
+        "aria-valuenow",
+        "1",
+      );
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({
+        path: testInfo.outputPath(`${id}-${mode.toLowerCase()}-today.png`),
+      });
+      await page
+        .getByRole("button", { name: "Log Sleep", exact: true })
+        .click();
+      const dialogColor = await page
+        .getByRole("dialog")
+        .evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(dialogColor).toBe(
+        await page
+          .locator(".habit-row")
+          .first()
+          .evaluate((el) => getComputedStyle(el).backgroundColor),
+      );
+      await page.getByRole("dialog").press("Escape");
+      await page.getByRole("button", { name: "Settings", exact: true }).click();
+    }
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-scheme", id);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await page.getByRole("button", { name: "Compact", exact: true }).click();
+    const region = page.locator(".grid-scroll");
+    expect(
+      await region.evaluate((el) => el.scrollHeight - el.clientHeight),
+    ).toBe(0);
+    await expect(page.locator(".grid-cell").first()).toHaveCSS(
+      "border-radius",
+      "0px",
+    );
+  }
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Paper theme", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("html")).toHaveAttribute("data-scheme", "paper");
+  await page.getByRole("button", { name: "System", exact: true }).click();
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-scheme", "paper");
+});
 test("daily check-in, undo, numeric target and reload persistence", async ({
   page,
 }) => {
