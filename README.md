@@ -7,7 +7,7 @@ A quiet place to build consistency. A phone-first habit tracker with quick check
 ## Product
 
 - Today: one-tap checkboxes, numeric targets, recent history, and undo.
-- History: editable habit-by-day grid, streaks, and weekly review.
+- History: a continuous, horizontally scrolling habit timeline with pinned names, Comfortable/Compact views, date jump, streaks, and weekly review. The full-width phone chart grows with all habit rows; vertical gestures scroll the page. Only nearby date columns render, keeping years of history light.
 - Settings: habit management, timezone, backup, and iPhone installation help.
 - Make habits your own with 48 searchable line icons and 18 curated pastel colors. Appearance is preserved in cloud sync and backups, and can be changed later.
 - Settings → Appearance offers System, Light, and Dark. The device-local preference applies before the app renders and follows system changes when System is selected.

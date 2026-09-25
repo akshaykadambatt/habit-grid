@@ -1,5 +1,19 @@
 import { Check, Minus, Plus } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  addDays,
+  canBackfill,
+  dayState,
+  formatDate,
+  type Data,
+  type Habit,
+} from "../domain/model";
+import {
+  dateWindow,
+  daysBetween,
+  FIRST_HISTORY_DATE,
+  timelineStart,
+} from "../domain/timeline";
 
 export type CellState =
   | "met"
@@ -23,103 +37,247 @@ export function StateMark({ state }: { state: CellState }) {
     <span aria-hidden="true">/</span>
   ) : null;
 }
-type GridRow = {
-  id: string;
-  name: string;
-  color: string;
-  current: number;
-  states: CellState[];
-  backfillDates?: string[];
-};
+type Viewport = { left: number; width: number; label: number; day: number };
 export function HistoryGrid({
-  rows,
-  days,
+  habits,
+  entries,
   today,
+  compact,
+  focusDate,
+  onRange,
   onCell,
 }: {
-  rows: GridRow[];
-  days: string[];
+  habits: Habit[];
+  entries: Data["entries"];
   today: string;
-  onCell: (id: string, date: string) => void;
+  compact: boolean;
+  focusDate: { date: string; request: number } | null;
+  onRange: (start: string, end: string) => void;
+  onCell: (habit: Habit, date: string) => void;
 }) {
   const scroll = useRef<HTMLDivElement>(null);
-  const lastDate = days.at(-1);
+  const earliest = timelineStart(
+    today,
+    habits.map((h) => h.createdOn),
+  );
+  const [start, setStart] = useState(earliest);
+  const [viewport, setViewport] = useState<Viewport>({
+    left: 0,
+    width: 0,
+    label: 112,
+    day: 56,
+  });
+  const layout = useRef<(Viewport & { start: string }) | null>(null);
+  const frame = useRef(0);
+  const appliedFocus = useRef<number | null>(null);
+  const count = daysBetween(start, today) + 1;
+  const window = dateWindow(
+    count,
+    viewport.left,
+    viewport.width,
+    viewport.label,
+    viewport.day,
+  );
+  const days = Array.from({ length: window.to - window.from + 1 }, (_, i) =>
+    addDays(start, window.from + i),
+  );
+  const visibleStart = addDays(start, window.first);
+  const visibleEnd = addDays(start, window.last);
+  useEffect(
+    () => onRange(visibleStart, visibleEnd),
+    [visibleStart, visibleEnd, onRange],
+  );
   useEffect(() => {
-    const element = scroll.current;
-    if (element) element.scrollLeft = element.scrollWidth - element.clientWidth;
-  }, [lastDate, days.length]);
+    if (earliest < start) setStart(earliest);
+  }, [earliest, start]);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  // Keep the rightmost visible date in place on resize, density changes, and prepends.
+  useLayoutEffect(() => {
+    const element = scroll.current!;
+    const measure = () => {
+      const style = getComputedStyle(element);
+      const day = parseFloat(style.getPropertyValue("--history-day-width"));
+      const label = parseFloat(style.getPropertyValue("--history-label-width"));
+      const width = element.clientWidth;
+      const previous = layout.current;
+      const anchor = previous
+        ? daysBetween(start, previous.start) +
+          (previous.left + previous.width - previous.label) / previous.day
+        : count;
+      element.scrollLeft = Math.max(0, anchor * day - width + label);
+      const next = { left: element.scrollLeft, width, day, label, start };
+      layout.current = next;
+      setViewport(next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [start, compact, count]);
+
+  useEffect(() => {
+    if (!focusDate || appliedFocus.current === focusDate.request) return;
+    const date =
+      focusDate.date < FIRST_HISTORY_DATE
+        ? FIRST_HISTORY_DATE
+        : focusDate.date > today
+          ? today
+          : focusDate.date;
+    if (date < addDays(start, 14) && start > FIRST_HISTORY_DATE) {
+      setStart(
+        addDays(date, -30) < FIRST_HISTORY_DATE
+          ? FIRST_HISTORY_DATE
+          : addDays(date, -30),
+      );
+      return;
+    }
+    const element = scroll.current!;
+    const dimensions = layout.current!;
+    appliedFocus.current = focusDate.request;
+    element.scrollTo({
+      left:
+        (daysBetween(start, date) + 1) * dimensions.day -
+        dimensions.width +
+        dimensions.label,
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  }, [focusDate, start, today]);
+
+  function trackScroll() {
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      const element = scroll.current;
+      if (!element || !layout.current) return;
+      // Resizing can clamp scrollLeft before ResizeObserver runs. Preserve the
+      // previous geometry until the observer has restored the date anchor.
+      if (element.clientWidth !== layout.current.width) return;
+      const next = { ...layout.current, left: element.scrollLeft };
+      layout.current = next;
+      setViewport(next);
+      if (next.left < next.day * 7 && start > FIRST_HISTORY_DATE) {
+        setStart(
+          addDays(start, -180) < FIRST_HISTORY_DATE
+            ? FIRST_HISTORY_DATE
+            : addDays(start, -180),
+        );
+      }
+    });
+  }
+  const before = window.from * viewport.day;
+  const after = (count - window.to - 1) * viewport.day;
   return (
     <>
       <div
         ref={scroll}
-        className="grid-scroll"
+        className={`grid-scroll${compact ? " grid-compact" : ""}`}
+        onScroll={trackScroll}
         tabIndex={0}
         role="region"
         aria-label="Habit history. Scroll horizontally for more dates."
       >
-        <table className="history-table">
+        <table
+          className="history-table"
+          aria-label="Habit history"
+          aria-colcount={count + 1}
+          style={{
+            width: `calc(var(--history-label-width) + ${count} * var(--history-day-width))`,
+          }}
+        >
+          <colgroup>
+            <col style={{ width: "var(--history-label-width)" }} />
+            {before > 0 && (
+              <col
+                style={{
+                  width: `calc(${window.from} * var(--history-day-width))`,
+                }}
+              />
+            )}
+            {days.map((date) => (
+              <col key={date} style={{ width: "var(--history-day-width)" }} />
+            ))}
+            {after > 0 && (
+              <col
+                style={{
+                  width: `calc(${count - window.to - 1} * var(--history-day-width))`,
+                }}
+              />
+            )}
+          </colgroup>
           <thead>
             <tr>
-              <th scope="col">YOUR HABITS</th>
-              {days.map((date) => (
+              <th scope="col" aria-colindex={1}>
+                YOUR HABITS
+              </th>
+              {before > 0 && (
+                <th className="timeline-spacer" aria-hidden="true" />
+              )}
+              {days.map((date, i) => (
                 <th
                   scope="col"
                   key={date}
+                  aria-colindex={window.from + i + 2}
                   className={date === today ? "today-column" : ""}
+                  aria-label={formatDate(date, { dateStyle: "full" })}
                 >
-                  <span>
-                    {new Date(date + "T12:00:00Z").toLocaleDateString("en", {
-                      weekday: "short",
-                      timeZone: "UTC",
-                    })}
-                  </span>
+                  <small>{formatDate(date, { month: "short" })}</small>
+                  <span>{formatDate(date, { weekday: "short" })}</span>
                   <strong>{Number(date.slice(-2))}</strong>
                 </th>
               ))}
-              <th scope="col" className="streak-column">
-                STREAK
-              </th>
+              {after > 0 && (
+                <th className="timeline-spacer" aria-hidden="true" />
+              )}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className={row.color}>
-                <th scope="row">
+            {habits.map((habit) => (
+              <tr key={habit.id} className={habit.color}>
+                <th scope="row" aria-colindex={1}>
                   <span className="color-dot" />
-                  {row.name}
+                  {habit.name}
                 </th>
-                {days.map((date, index) => (
-                  <td
-                    key={date}
-                    className={date === today ? "today-column" : ""}
-                  >
-                    <button
-                      className={`grid-cell ${row.backfillDates?.includes(date) ? "state-before-start" : `state-${row.states[index]}`}`}
-                      disabled={
-                        row.states[index] === "future" ||
-                        (row.states[index] === "unscheduled" &&
-                          !row.backfillDates?.includes(date))
-                      }
-                      aria-label={`${row.name}, ${date}, ${row.backfillDates?.includes(date) ? "Log earlier day" : stateLabels[row.states[index]]}`}
-                      onClick={() => onCell(row.id, date)}
+                {before > 0 && (
+                  <td className="timeline-spacer" aria-hidden="true" />
+                )}
+                {days.map((date, i) => {
+                  const state = dayState(habit, date, entries, today);
+                  const backfill = canBackfill(habit, date, today);
+                  return (
+                    <td
+                      key={date}
+                      aria-colindex={window.from + i + 2}
+                      className={date === today ? "today-column" : ""}
                     >
-                      {row.backfillDates?.includes(date) ? (
-                        <Plus size={16} aria-hidden="true" />
-                      ) : (
-                        <StateMark state={row.states[index]} />
-                      )}
-                    </button>
-                  </td>
-                ))}
-                <td className="streak-column">
-                  <span className="streak-number">{row.current}</span>
-                </td>
+                      <button
+                        className={`grid-cell ${backfill ? "state-before-start" : `state-${state}`}`}
+                        disabled={
+                          state === "future" ||
+                          (state === "unscheduled" && !backfill)
+                        }
+                        aria-label={`${habit.name}, ${date}, ${backfill ? "Log earlier day" : stateLabels[state]}`}
+                        onClick={() => onCell(habit, date)}
+                      >
+                        {backfill ? (
+                          <Plus size={16} aria-hidden="true" />
+                        ) : (
+                          <StateMark state={state} />
+                        )}
+                      </button>
+                    </td>
+                  );
+                })}
+                {after > 0 && (
+                  <td className="timeline-spacer" aria-hidden="true" />
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {rows.some((row) => row.backfillDates?.length) && (
+      {habits.some((h) => days.some((d) => canBackfill(h, d, today))) && (
         <p className="help-text">
           Tap a + to log a day before you started tracking.
         </p>
