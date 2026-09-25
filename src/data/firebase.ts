@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
+  connectAuthEmulator,
   GoogleAuthProvider,
   getRedirectResult,
   signInWithPopup,
@@ -10,22 +11,37 @@ import {
 import { authDomainForHost } from "./authDomain";
 import {
   initializeFirestore,
+  connectFirestoreEmulator,
   persistentLocalCache,
   persistentSingleTabManager,
   terminate,
   clearIndexedDbPersistence,
 } from "firebase/firestore";
 
-const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: authDomainForHost(
-    import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    window.location.hostname,
-  ),
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+const emulatorMode = import.meta.env.MODE === "e2e";
+if (
+  emulatorMode &&
+  !["localhost", "127.0.0.1"].includes(window.location.hostname)
+) {
+  throw new Error("Test builds may only run on localhost.");
+}
+const config = emulatorMode
+  ? {
+      apiKey: "demo-api-key",
+      authDomain: "demo-habit-grid.firebaseapp.com",
+      projectId: "demo-habit-grid",
+      appId: "demo-app",
+    }
+  : {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: authDomainForHost(
+        import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        window.location.hostname,
+      ),
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    };
 export const configured = Object.values(config).every(Boolean);
 const app = configured ? initializeApp(config) : null;
 export const auth = app ? getAuth(app) : null;
@@ -36,11 +52,16 @@ export const db = app
       }),
     })
   : null;
+if (emulatorMode && auth && db) {
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  void import("./emulatorSignIn").then(({ exposeTestSignIn }) =>
+    exposeTestSignIn(auth!),
+  );
+}
 export async function login() {
   if (!auth)
-    throw new Error(
-      "Cloud sync is not configured. You can use this device for now.",
-    );
+    throw new Error("Sign-in is unavailable until Firebase is configured.");
   const provider = new GoogleAuthProvider();
   const mobile =
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||

@@ -10,7 +10,7 @@
 
 ## Manual browser checks performed
 
-Test data is synthetic and stored in a separate device-local browser profile.
+Browser regression tests use synthetic signed-in accounts in local Firebase Auth/Firestore emulators. Legacy guest recovery is tested without deleting the original browser backup.
 
 - Starter selection, checkbox and numeric logging, unsuccessful status, historical cell editing, creation, reordering, and archiving.
 - Local persistence after reload.
