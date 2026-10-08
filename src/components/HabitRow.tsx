@@ -1,9 +1,11 @@
 import { Check, Minus } from "lucide-react";
+import type { CSSProperties } from "react";
 import { HabitIcon } from "./HabitIcon";
 export { HabitIcon } from "./HabitIcon";
 import {
   addDays,
   dayState,
+  numericProgress,
   entryId,
   ruleOn,
   targetLabel,
@@ -54,10 +56,19 @@ export function HabitRow({
           {Array.from({ length: 7 }, (_, i) => {
             const date = addDays(today, i - 6);
             const s = dayState(habit, date, data.entries, today);
+            const progress = numericProgress(habit, date, data.entries, today);
+            const partial = progress !== null && progress > 0 && progress < 1;
             return (
               <i
                 title={`${date}: ${s}`}
-                className={`${date === today ? "current" : ""} mini-${s}`}
+                className={`${date === today ? "current" : ""} mini-${s} ${partial ? "numeric-partial" : ""}`}
+                style={
+                  partial
+                    ? ({
+                        "--numeric-fill": `${progress * 100}%`,
+                      } as CSSProperties)
+                    : undefined
+                }
                 key={date}
               />
             );

@@ -1,10 +1,20 @@
 import { Check, Minus, Plus } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   addDays,
   canBackfill,
   dayState,
   formatDate,
+  numericProgress,
+  entryId,
+  ruleOn,
+  targetLabel,
   type Data,
   type Habit,
 } from "../domain/model";
@@ -245,6 +255,13 @@ export function HistoryGrid({
                 {days.map((date, i) => {
                   const state = dayState(habit, date, entries, today);
                   const backfill = canBackfill(habit, date, today);
+                  const progress = numericProgress(habit, date, entries, today);
+                  const partial =
+                    progress !== null && progress > 0 && progress < 1;
+                  const numericDescription =
+                    progress !== null
+                      ? `${entries[entryId(habit.id, date)].value} ${ruleOn(habit, date)!.unit}. ${targetLabel(ruleOn(habit, date)!)}.`
+                      : undefined;
                   return (
                     <td
                       key={date}
@@ -252,7 +269,16 @@ export function HistoryGrid({
                       className={date === today ? "today-column" : ""}
                     >
                       <button
-                        className={`grid-cell ${backfill ? "state-before-start" : `state-${state}`}`}
+                        className={`grid-cell ${backfill ? "state-before-start" : `state-${state}`} ${partial ? "numeric-partial" : ""}`}
+                        style={
+                          partial
+                            ? ({
+                                "--numeric-fill": `${progress * 100}%`,
+                              } as CSSProperties)
+                            : undefined
+                        }
+                        aria-description={numericDescription}
+                        title={numericDescription}
                         disabled={
                           state === "future" ||
                           (state === "unscheduled" && !backfill)
@@ -294,6 +320,14 @@ export function HistoryGrid({
           ),
         )}
       </div>
+      {habits.some((habit) =>
+        habit.rules.some((rule) => rule.kind === "number"),
+      ) && (
+        <p className="help-text numeric-legend">
+          Number goals: lighter fills show partial progress. Full color means
+          the goal is met; a minus means it is not met yet.
+        </p>
+      )}
     </>
   );
 }

@@ -4,6 +4,7 @@ import {
   addDays,
   dayState,
   isScheduled,
+  numericProgress,
   type Data,
   type Habit,
 } from "../domain/model";
@@ -157,6 +158,14 @@ export function Today({
           <div className="rhythm-grid" aria-hidden="true">
             {Array.from({ length: 49 }, (_, i) => {
               const h = data.habits[Math.floor(i / 7)];
+              const progress = h
+                ? numericProgress(
+                    h,
+                    addDays(today, (i % 7) - 6),
+                    data.entries,
+                    today,
+                  )
+                : null;
               const met =
                 h &&
                 dayState(
@@ -170,8 +179,15 @@ export function Today({
                   key={i}
                   className={h?.color}
                   style={{
-                    background: met ? "var(--habit)" : "transparent",
-                    border: met ? "none" : "1px solid var(--control-line)",
+                    background: met
+                      ? "var(--habit)"
+                      : progress !== null && progress > 0
+                        ? `color-mix(in srgb, var(--habit) ${progress * 100}%, var(--surface))`
+                        : "transparent",
+                    border:
+                      met || (progress !== null && progress > 0)
+                        ? "none"
+                        : "1px solid var(--control-line)",
                   }}
                 />
               );

@@ -143,6 +143,35 @@ export function targetLabel(rule: Rule) {
     ? "Not logged today"
     : `Goal: ${rule.comparison === "min" ? "at least " : rule.comparison === "max" ? "at most " : ""}${rule.target}${rule.comparison === "range" ? `–${rule.upper}` : ""} ${rule.unit}`;
 }
+/** Visual progress only: partial fills never change completion or streak rules. */
+export function numericProgress(
+  habit: Habit,
+  date: string,
+  entries: Data["entries"],
+  today: string,
+): number | null {
+  const rule = ruleOn(habit, date);
+  const state = dayState(habit, date, entries, today);
+  const value = entries[entryId(habit.id, date)]?.value;
+  if (
+    rule?.kind !== "number" ||
+    (state !== "met" && state !== "not-met") ||
+    value == null ||
+    !Number.isFinite(value) ||
+    value < 0
+  )
+    return null;
+  if (state === "met") return 1;
+  if (value === 0) return 0;
+  // Upper limits and ranges fade when moving away from the valid interval.
+  const ratio =
+    rule.comparison === "max"
+      ? rule.target / value
+      : rule.comparison === "range" && value > rule.upper
+        ? rule.upper / value
+        : value / rule.target;
+  return Math.max(0, Math.min(1, ratio));
+}
 export function reviseHabit(habit: Habit, rule: Rule, today: string): Habit {
   return {
     ...habit,
