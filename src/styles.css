@@ -1776,6 +1776,27 @@ h1 {
 .mini-history .mini-unscheduled {
   opacity: 0.45;
 }
+.grid-cell.numeric-partial,
+.mini-history .numeric-partial {
+  background: color-mix(
+    in srgb,
+    var(--habit) var(--numeric-fill),
+    var(--surface)
+  );
+  border-color: var(--control-line);
+}
+/* Fade only the fill; keep the unmet symbol legible in every theme. */
+.grid-cell.numeric-partial > svg {
+  color: var(--ink);
+  background: var(--surface);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+}
+.numeric-legend {
+  margin-top: -8px;
+}
 .all-set {
   font-size: 0.875rem;
   color: var(--green);

@@ -132,6 +132,95 @@ test("five app themes style all views, retain entries, and survive reload with i
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-scheme", "paper");
 });
+test("numeric history fades below goal, keeps zero unmet, and retains partial fills after reload", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60000);
+  await start(page);
+  const today = await page.evaluate(() =>
+    new Intl.DateTimeFormat("en-CA").format(new Date()),
+  );
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  for (const [offset, value] of [
+    [-3, 9],
+    [-2, 4.5],
+    [-1, 0],
+  ]) {
+    const date = addDays(today, offset);
+    await page
+      .getByRole("button", { name: new RegExp(`^Sleep, ${date},`) })
+      .click();
+    await page
+      .getByRole("textbox", { name: "hours", exact: true })
+      .fill(String(value));
+    await page.getByRole("button", { name: "Save entry", exact: true }).click();
+  }
+  await synced(page);
+  await page.reload();
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  const full = page.getByRole("button", {
+    name: `Sleep, ${addDays(today, -3)}, Met`,
+    exact: true,
+  });
+  const partial = page.getByRole("button", {
+    name: `Sleep, ${addDays(today, -2)}, Not met`,
+    exact: true,
+  });
+  const zero = page.getByRole("button", {
+    name: `Sleep, ${addDays(today, -1)}, Not met`,
+    exact: true,
+  });
+  await expect(full).not.toHaveClass(/numeric-partial/);
+  await expect(partial).toHaveClass(/numeric-partial/);
+  await expect(partial).toHaveCSS("--numeric-fill", "50%");
+  await expect(partial).toHaveAttribute(
+    "aria-description",
+    /4.5 hours.*at least 9 hours/,
+  );
+  await expect(zero).not.toHaveClass(/numeric-partial/);
+  await expect(zero).toHaveAttribute("aria-description", /^0 hours/);
+  await expect(
+    page.getByRole("button", {
+      name: `Sleep, ${today}, Not logged`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Compact", exact: true }).click();
+  await expect(partial).toHaveCSS("border-radius", "0px");
+  await page.screenshot({
+    path: testInfo.outputPath("numeric-history-light.png"),
+  });
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await expect(partial).toHaveCSS("--numeric-fill", "50%");
+  await page.screenshot({
+    path: testInfo.outputPath("numeric-history-dark.png"),
+  });
+  await partial.click();
+  await page.getByRole("button", { name: "Clear entry", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: `Sleep, ${addDays(today, -2)}, Not logged`,
+      exact: true,
+    }),
+  ).not.toHaveClass(/numeric-partial/);
+  await page
+    .locator("nav:visible")
+    .getByRole("button", { name: /^Today/ })
+    .click();
+  await page.getByRole("button", { name: "Log Sleep", exact: true }).click();
+  await page.getByRole("textbox", { name: "hours", exact: true }).fill("4.5");
+  await page.getByRole("button", { name: "Save entry", exact: true }).click();
+  await expect(page.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuenow",
+    "0",
+  );
+  await expect(
+    page.locator(".mini-history .current.numeric-partial"),
+  ).toHaveCSS("--numeric-fill", "50%");
+});
+
 test("daily check-in, undo, numeric target and reload persistence", async ({
   page,
 }) => {
